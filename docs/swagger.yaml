@@ -1,0 +1,26 @@
+info:
+  contact: {}
+paths:
+  /api/seckill/buy:
+    post:
+      consumes:
+      - application/x-www-form-urlencoded
+      description: 发起秒杀请求，扣减库存
+      parameters:
+      - description: 商品ID
+        in: formData
+        name: product_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{"code":0,"msg":"抢购成功"}'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 用户秒杀下单
+      tags:
+      - 秒杀模块
+swagger: "2.0"
