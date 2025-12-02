@@ -19,13 +19,19 @@ type SeckillController struct{}
 // @Tags 秒杀模块
 // @Accept x-www-form-urlencoded
 // @Produce json
+// @Security Bearer
 // @Param product_id formData int true "商品ID"
 // @Success 200 {object} map[string]interface{} "{"code":0,"msg":"抢购成功"}"
 // @Router /api/seckill/buy [post]
 func (sc *SeckillController) Buy(c *gin.Context) {
 	//1、获取用户ID和商品ID
 	//暂时模拟一个用户id
-	userID := 1
+	uid, exists := c.Get("uid")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "请先登录"})
+		return
+	}
+	userID := uid.(int) // 断言为 int
 	//从请求参数获取商品ID
 	pidStr := c.PostForm("product_id")
 	productid, err := strconv.Atoi(pidStr)

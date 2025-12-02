@@ -30,24 +30,21 @@ func NewRouter() *gin.Engine {
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// 4. 实例化 Controller
+	userCtrl := &controller.UserController{}
 	seckillCtrl := &controller.SeckillController{}
 
 	// 5. 注册业务路由
 	api := r.Group("/api")
 	{
-		// 用户模块 (测试用)
-		userGroup := api.Group("/user")
-		{
-			userGroup.GET("/info", func(c *gin.Context) {
-				c.JSON(200, gin.H{"msg": "user info"})
-			})
-		}
+		// 公开接口
+		api.POST("/register", userCtrl.Register)
+		api.POST("/login", userCtrl.Login)
 
-		// 秒杀模块
-		seckillGroup := api.Group("/seckill")
+		// 🔒 需要鉴权的接口组
+		authGroup := api.Group("/")
+		authGroup.Use(middleware.JWTAuth()) // 挂载中间件
 		{
-			// POST /api/seckill/buy
-			seckillGroup.POST("/buy", seckillCtrl.Buy)
+			authGroup.POST("/seckill/buy", seckillCtrl.Buy)
 		}
 	}
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"seckill/pkg/logger"
+	"seckill/pkg/rabbitmq"
 	"seckill/pkg/redis" // 引入 Redis 包
 
 	"go.uber.org/zap"
@@ -45,7 +46,11 @@ func SeckillV2(userID int, productID int) (bool, string) {
 		// 对应 Lua 里的 return 1
 		logger.Log.Info("Redis 抢购成功", zap.Int("uid", userID))
 
-		// 🟢 TODO: 这里接下来要写 RabbitMQ 发送逻辑
+		// RabbitMQ 发送逻辑
+		err := rabbitmq.SendSeckillMessage(int64(userID), int64(productID))
+		if err != nil {
+			return false, "订单创建失败，请稍后再试"
+		}
 
 		return true, "抢购成功！正在生成订单..."
 	}

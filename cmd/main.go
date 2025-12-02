@@ -7,7 +7,9 @@ import (
 	"seckill/internal/service"
 	"seckill/pkg/database"
 	"seckill/pkg/logger"
+	"seckill/pkg/rabbitmq"
 	"seckill/pkg/redis"
+	"seckill/pkg/snowflake"
 
 	"go.uber.org/zap"
 )
@@ -17,13 +19,20 @@ import (
 // @description 基于 Gin + Redis + RabbitMQ 的高并发秒杀系统
 // @host localhost:8080
 // @BasePath /
+// 定义安全模式
+// @securityDefinitions.apikey Bearer
+// @in header
+// @name Authorization
 func main() {
 	//1、初始化
 	logger.Initlogger()
-	defer logger.Sync()    //确保程序退出前最后一条日志被写入
-	database.InitMySQL()   // 连接 MySQL
-	redis.InitRedis()      // 连接 Redis
-	redis.InitLuaScripts() // 初始化 Lua 脚本
+	defer logger.Sync()     //确保程序退出前最后一条日志被写入
+	database.InitMySQL()    // 连接 MySQL
+	redis.InitRedis()       // 连接 Redis
+	redis.InitLuaScripts()  // 初始化 Lua 脚本
+	snowflake.Init(1)       //雪花算法初始化，机器ID=1
+	rabbitmq.InitRabbitMQ() //RabbitMQ初始化
+	service.StartConsumer()
 	//2、表结构设置
 	err := database.DB.AutoMigrate(&model.User{}, &model.Product{}, &model.Order{}) // 自动建表
 	if err != nil {

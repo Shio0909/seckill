@@ -1,6 +1,69 @@
+basePath: /
+host: localhost:8080
 info:
   contact: {}
+  description: 基于 Gin + Redis + RabbitMQ 的高并发秒杀系统
+  title: Go秒杀系统 API
+  version: "1.0"
 paths:
+  /api/login:
+    post:
+      consumes:
+      - application/json
+      description: 用户登录获取 Token
+      parameters:
+      - description: 登录参数
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            password:
+              type: string
+            username:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{"token": "eyJ...", "msg": "登录成功"}'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 用户登录
+      tags:
+      - 用户模块
+  /api/register:
+    post:
+      consumes:
+      - application/json
+      description: 用户注册接口
+      parameters:
+      - description: 注册参数
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            password:
+              type: string
+            phone:
+              type: string
+            username:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: '{"msg": "注册成功"}'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: 用户注册
+      tags:
+      - 用户模块
   /api/seckill/buy:
     post:
       consumes:
@@ -20,7 +83,14 @@ paths:
           schema:
             additionalProperties: true
             type: object
+      security:
+      - Bearer: []
       summary: 用户秒杀下单
       tags:
       - 秒杀模块
+securityDefinitions:
+  Bearer:
+    in: header
+    name: Authorization
+    type: apiKey
 swagger: "2.0"
