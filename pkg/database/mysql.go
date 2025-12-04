@@ -3,7 +3,9 @@ package database
 import (
 	"fmt"
 	"log"
-	"time"
+	"strings"
+
+	"seckill/pkg/config"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -13,13 +15,27 @@ import (
 var DB *gorm.DB
 
 func InitMySQL() {
-	// 本地开发连 K8s 用 localhost (因为做了端口转发)
-	// 部署上线时要改成 mysql-service (通过配置文件控制，这里先写死调试)
-	dsn := "root:root123456@tcp(127.0.0.1:3307)/seckill?charset=utf8mb4&parseTime=True&loc=Local"
+	cfg := config.Get().MySQL
+
+	// 使用配置生成 DSN
+	dsn := cfg.DSN()
+
+	// 根据配置设置日志级别
+	var logLevel logger.LogLevel
+	switch strings.ToLower(cfg.LogLevel) {
+	case "silent":
+		logLevel = logger.Silent
+	case "error":
+		logLevel = logger.Error
+	case "warn":
+		logLevel = logger.Warn
+	default:
+		logLevel = logger.Info
+	}
 
 	var err error
 	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Info), // 打印 SQL 日志，方便调试
+		Logger: logger.Default.LogMode(logLevel),
 	})
 
 	if err != nil {
@@ -27,10 +43,10 @@ func InitMySQL() {
 	}
 
 	sqlDB, _ := DB.DB()
-	// 设置连接池
-	sqlDB.SetMaxIdleConns(10)  // 空闲连接数
-	sqlDB.SetMaxOpenConns(100) // 最大连接数
-	sqlDB.SetConnMaxLifetime(time.Hour)
+	// 从配置读取连接池参数
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConns)
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConns)
+	sqlDB.SetConnMaxLifetime(cfg.ConnMaxLifetime)
 
-	fmt.Println("✅ MySQL 连接成功")
+	fmt.Printf("✅ MySQL 连接成功 [%s:%d/%s]\n", cfg.Host, cfg.Port, cfg.Database)
 }

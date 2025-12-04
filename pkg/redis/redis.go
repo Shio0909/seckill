@@ -6,17 +6,25 @@ import (
 	"log"
 	"time"
 
+	"seckill/pkg/config"
+
 	"github.com/redis/go-redis/v9"
 )
 
 var Client *redis.Client
 
 func InitRedis() {
+	cfg := config.Get().Redis
+
 	Client = redis.NewClient(&redis.Options{
-		Addr:     "127.0.0.1:6379", // 同样是因为端口转发
-		Password: "",               // 我们部署时没设密码
-		DB:       0,
-		PoolSize: 100, // 连接池大小
+		Addr:         cfg.Addr,
+		Password:     cfg.Password,
+		DB:           cfg.DB,
+		PoolSize:     cfg.PoolSize,
+		MinIdleConns: cfg.MinIdleConns,
+		DialTimeout:  cfg.DialTimeout,
+		ReadTimeout:  cfg.ReadTimeout,
+		WriteTimeout: cfg.WriteTimeout,
 	})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -27,5 +35,5 @@ func InitRedis() {
 		log.Fatalf("连接 Redis 失败: %v", err)
 	}
 
-	fmt.Println("✅ Redis 连接成功")
+	fmt.Printf("✅ Redis 连接成功 [%s]\n", cfg.Addr)
 }

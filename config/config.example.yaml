@@ -1,0 +1,65 @@
+# =============================================================================
+# DaMai-Go 秒杀系统配置文件模板
+# =============================================================================
+# 复制此文件为 config.yaml 并修改配置
+# cp config.example.yaml config.yaml
+# =============================================================================
+
+server:
+  name: seckill-service
+  port: 8080
+  mode: debug                  # debug/release/test
+  read_timeout: 10s
+  write_timeout: 10s
+
+mysql:
+  host: 127.0.0.1
+  port: 3306
+  user: root
+  password: your_password      # ⚠️ 修改为你的密码
+  database: seckill
+  charset: utf8mb4
+  max_idle_conns: 10
+  max_open_conns: 100
+  conn_max_lifetime: 1h
+  log_level: info
+
+redis:
+  addr: 127.0.0.1:6379
+  password: ""
+  db: 0
+  pool_size: 100
+  min_idle_conns: 10
+  dial_timeout: 5s
+  read_timeout: 3s
+  write_timeout: 3s
+
+rabbitmq:
+  url: amqp://guest:guest@localhost:5672/  # ⚠️ 修改为你的 RabbitMQ 地址
+  queue_name: seckill_queue
+
+kafka:
+  brokers:
+    - localhost:9092
+  topic: seckill_orders
+  group_id: seckill_consumer
+
+jwt:
+  secret: change-this-to-your-secret-key   # ⚠️ 生产环境必须修改！
+  issuer: seckill
+  expire_time: 72h
+
+log:
+  level: info
+  format: json
+  output_path: stdout
+  max_size: 100
+  max_backups: 3
+  max_age: 7
+  compress: true
+
+consul:
+  addr: 127.0.0.1:8500
+  service_name: seckill
+  service_port: 8080
+  health_check: /health
