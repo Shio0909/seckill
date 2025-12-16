@@ -395,24 +395,35 @@ kafka_consumer_lag             # Kafka 消费延迟
 
 ## 🚀 分阶段开发计划
 
-### 📅 阶段一：基础加固（1-2 周）
+### 📅 阶段一：基础加固（1-2 周）✅ 已完成
 
 **目标**：完善现有单体架构，补齐关键功能，确保核心流程稳定
 
 #### 任务清单
 
-| 序号 | 任务 | 优先级 | 预计时间 |
-|------|------|--------|----------|
-| 1.1 | 配置文件改造（Viper 支持 YAML/ENV） | P0 | 1天 |
-| 1.2 | 优雅停机实现（信号监听、连接排空） | P0 | 0.5天 |
-| 1.3 | 统一响应格式封装（`pkg/response`） | P0 | 0.5天 |
-| 1.4 | 全局错误处理中间件 | P0 | 0.5天 |
-| 1.5 | 参数校验增强（validator tag） | P1 | 0.5天 |
-| 1.6 | 请求限流中间件（令牌桶） | P0 | 1天 |
-| 1.7 | 接口幂等设计（幂等键 + Redis） | P0 | 1天 |
-| 1.8 | 单元测试（核心 service 覆盖率 > 60%） | P1 | 2天 |
-| 1.9 | 商品管理 CRUD 接口 | P1 | 1天 |
-| 1.10 | 订单列表/详情接口 | P1 | 1天 |
+| 序号 | 任务 | 优先级 | 状态 | 实现文件 |
+|------|------|--------|------|----------|
+| 1.1 | 配置文件改造（Viper 支持 YAML/ENV） | P0 | ✅ | `pkg/config/config.go` |
+| 1.2 | 优雅停机实现（信号监听、连接排空） | P0 | ✅ | `cmd/main.go` |
+| 1.3 | 统一响应格式封装（`pkg/response`） | P0 | ✅ | `pkg/response/response.go` |
+| 1.4 | 全局错误处理中间件 | P0 | ✅ | `internal/middleware/recovery.go` |
+| 1.5 | 参数校验增强（validator tag） | P1 | ✅ | `pkg/validator/validator.go` |
+| 1.6 | 请求限流中间件（令牌桶） | P0 | ✅ | `internal/middleware/ratelimit.go` |
+| 1.7 | 接口幂等设计（幂等键 + Redis） | P0 | ✅ | `internal/middleware/idempotent.go` |
+| 1.8 | 单元测试（核心 service 覆盖率 > 60%） | P1 | ✅ | `internal/service/service_test.go`, `internal/middleware/middleware_test.go` |
+| 1.9 | 商品管理 CRUD 接口 | P1 | ✅ | `internal/controller/product_controller.go`, `internal/service/product_service.go` |
+| 1.10 | 订单列表/详情接口 | P1 | ✅ | `internal/controller/order_controller.go`, `internal/service/order_service.go` |
+
+#### 重点学习标记
+
+本阶段代码中包含大量 `// 重点学习` 注释，标记了以下知识点：
+- 🔥 Viper 配置加载与热更新原理
+- 🔥 优雅停机信号处理机制
+- 🔥 令牌桶限流算法实现
+- 🔥 幂等性设计模式
+- 🔥 Cache Aside Pattern 缓存策略
+- 🔥 表格驱动测试方法
+- 🔥 订单状态机设计
 
 #### 关键代码示例
 

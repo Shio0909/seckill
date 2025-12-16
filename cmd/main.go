@@ -1,8 +1,14 @@
 package main
 
-//只负责启动，不负责具体配置细节
+// 只负责启动，不负责具体配置细节
 import (
+	"context"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"seckill/internal/model"
 	"seckill/internal/router"
@@ -52,13 +58,91 @@ func main() {
 	// 3、初始化测试商品数据
 	service.InitProductData()
 
-	// 4、启动web服务
-	r := router.NewRouter()
+	// 4、启动web服务（支持优雅停机）
 	cfg := config.Get()
-	logger.Log.Info("程序启动成功",
-		zap.String("service", cfg.Server.Name),
-		zap.String("mode", cfg.Server.Mode),
-		zap.Int("port", cfg.Server.Port),
-	)
-	r.Run(config.GetServerAddr())
+	r := router.NewRouter()
+
+	// ========================================================================
+	// 【重点学习】优雅停机实现
+	// ========================================================================
+	// 为什么需要优雅停机？
+	// 1. 直接 kill 进程会导致正在处理的请求被中断，用户体验差
+	// 2. 数据库连接、消息队列连接未正确关闭可能导致数据不一致
+	// 3. 生产环境必备特性，面试高频考点
+	//
+	// 实现原理：
+	// 1. 使用 http.Server 而非 gin 的 Run()，因为需要调用 Shutdown()
+	// 2. 监听系统信号 SIGINT(Ctrl+C) 和 SIGTERM(kill)
+	// 3. 收到信号后，设置超时上下文，调用 Shutdown() 等待请求完成
+	// 4. Shutdown() 会：停止接收新请求 -> 等待已有请求完成 -> 关闭服务
+	// ========================================================================
+	srv := &http.Server{
+		Addr:         config.GetServerAddr(),
+		Handler:      r,
+		ReadTimeout:  cfg.Server.ReadTimeout,
+		WriteTimeout: cfg.Server.WriteTimeout,
+	}
+
+	// 在 goroutine 中启动服务器（非阻塞）
+	go func() {
+		logger.Log.Info("程序启动成功",
+			zap.String("service", cfg.Server.Name),
+			zap.String("mode", cfg.Server.Mode),
+			zap.Int("port", cfg.Server.Port),
+		)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			logger.Log.Fatal("服务启动失败", zap.Error(err))
+		}
+	}()
+
+	// ========================================================================
+	// 【重点学习】信号监听
+	// ========================================================================
+	// os.Signal 是 Go 中表示操作系统信号的类型
+	// SIGINT: 用户按 Ctrl+C 产生
+	// SIGTERM: kill 命令默认发送的信号（K8s 停止 Pod 时也发送此信号）
+	// 使用 buffered channel 避免信号丢失
+	// ========================================================================
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit // 阻塞，直到收到信号
+	logger.Log.Info("正在关闭服务...")
+
+	// 设置 5 秒超时，等待现有请求完成
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	// 关闭 HTTP 服务
+	if err := srv.Shutdown(ctx); err != nil {
+		logger.Log.Error("服务关闭异常", zap.Error(err))
+	}
+
+	// 关闭其他资源连接
+	closeResources()
+
+	logger.Log.Info("服务已安全退出")
+}
+
+// closeResources 关闭所有资源连接
+func closeResources() {
+	// 关闭 MySQL 连接
+	if sqlDB, err := database.DB.DB(); err == nil {
+		sqlDB.Close()
+		logger.Log.Info("MySQL 连接已关闭")
+	}
+
+	// 关闭 Redis 连接
+	if redis.Client != nil {
+		redis.Client.Close()
+		logger.Log.Info("Redis 连接已关闭")
+	}
+
+	// 关闭 RabbitMQ 连接
+	if rabbitmq.Channel != nil {
+		rabbitmq.Channel.Close()
+	}
+	if rabbitmq.Conn != nil {
+		rabbitmq.Conn.Close()
+		logger.Log.Info("RabbitMQ 连接已关闭")
+	}
 }
