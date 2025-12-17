@@ -16,7 +16,7 @@ type UserController struct{}
 // @Produce json
 // @Param request body object{username=string,password=string,phone=string} true "注册参数"
 // @Success 200 {object} map[string]interface{} "{"msg": "注册成功"}"
-// @Router /api/register [post]
+// @Router /api/v1/register [post]
 // Register 注册接口
 func (uc *UserController) Register(c *gin.Context) {
 	var form struct {
@@ -43,7 +43,7 @@ func (uc *UserController) Register(c *gin.Context) {
 // @Produce json
 // @Param request body object{username=string,password=string} true "登录参数"
 // @Success 200 {object} map[string]interface{} "{"token": "eyJ...", "msg": "登录成功"}"
-// @Router /api/login [post]
+// @Router /api/v1/login [post]
 // Login 登录接口
 func (uc *UserController) Login(c *gin.Context) {
 	var form struct {

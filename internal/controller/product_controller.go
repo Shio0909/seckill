@@ -3,6 +3,7 @@ package controller
 import (
 	"strconv"
 
+	"seckill/internal/model"
 	"seckill/internal/service"
 	"seckill/pkg/e"
 	"seckill/pkg/response"
@@ -40,6 +41,9 @@ func NewProductController() *ProductController {
 		productService: &service.ProductService{},
 	}
 }
+
+// 引入 model.Product 供 Swagger 注释解析使用，避免在注释中引用未导入的类型导致 swag 解析失败
+var _ = model.Product{}
 
 // List 获取商品列表
 // @Summary 获取商品列表

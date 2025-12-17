@@ -1,4 +1,205 @@
 basePath: /
+definitions:
+  gorm.DeletedAt:
+    properties:
+      time:
+        type: string
+      valid:
+        description: Valid is true if Time is not NULL
+        type: boolean
+    type: object
+  seckill_internal_model.Order:
+    properties:
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      id:
+        type: integer
+      orderNum:
+        description: 订单号 (用雪花算法生成)
+        type: string
+      product:
+        allOf:
+        - $ref: '#/definitions/seckill_internal_model.Product'
+        description: 关联关系 (可选，为了查询方便)
+      productID:
+        description: 联合唯一索引
+        type: integer
+      status:
+        description: 0:未支付, 1:已支付, 2:已取消
+        type: integer
+      updatedAt:
+        type: string
+      user:
+        $ref: '#/definitions/seckill_internal_model.User'
+      userID:
+        description: 联合唯一索引
+        type: integer
+    type: object
+  seckill_internal_model.Product:
+    properties:
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      description:
+        description: 商品描述
+        type: string
+      endTime:
+        description: 秒杀结束时间
+        type: string
+      id:
+        type: integer
+      imageURL:
+        description: 商品图片URL
+        type: string
+      name:
+        description: 商品名称
+        type: string
+      price:
+        description: 商品原价
+        type: number
+      seckillPrice:
+        description: 秒杀价
+        type: number
+      startTime:
+        description: 秒杀开始时间
+        type: string
+      stock:
+        description: 库存数量
+        type: integer
+      updatedAt:
+        type: string
+    type: object
+  seckill_internal_model.User:
+    properties:
+      avatar:
+        type: string
+      createdAt:
+        type: string
+      deletedAt:
+        $ref: '#/definitions/gorm.DeletedAt'
+      email:
+        type: string
+      id:
+        type: integer
+      isAdmin:
+        type: boolean
+      password:
+        description: 密码
+        type: string
+      phone:
+        description: 手机号
+        type: string
+      status:
+        type: integer
+      updatedAt:
+        type: string
+      username:
+        description: 用户名
+        type: string
+    type: object
+  seckill_internal_service.CreateProductRequest:
+    properties:
+      description:
+        type: string
+      end_time:
+        type: string
+      image_url:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      price:
+        type: number
+      seckill_price:
+        type: number
+      start_time:
+        type: string
+      stock:
+        minimum: 0
+        type: integer
+    required:
+    - end_time
+    - name
+    - price
+    - seckill_price
+    - start_time
+    - stock
+    type: object
+  seckill_internal_service.OrderDetailResponse:
+    properties:
+      order:
+        $ref: '#/definitions/seckill_internal_model.Order'
+      product:
+        $ref: '#/definitions/seckill_internal_model.Product'
+    type: object
+  seckill_internal_service.OrderListResponse:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/seckill_internal_model.Order'
+        type: array
+      total:
+        type: integer
+    type: object
+  seckill_internal_service.OrderStats:
+    properties:
+      cancelled_orders:
+        type: integer
+      completed_orders:
+        type: integer
+      paid_orders:
+        type: integer
+      pending_orders:
+        type: integer
+      total_orders:
+        type: integer
+    type: object
+  seckill_internal_service.ProductListResponse:
+    properties:
+      list:
+        items:
+          $ref: '#/definitions/seckill_internal_model.Product'
+        type: array
+      total:
+        type: integer
+    type: object
+  seckill_internal_service.UpdateProductRequest:
+    properties:
+      description:
+        type: string
+      end_time:
+        type: string
+      image_url:
+        type: string
+      name:
+        maxLength: 100
+        minLength: 1
+        type: string
+      price:
+        type: number
+      seckill_price:
+        type: number
+      start_time:
+        type: string
+      stock:
+        minimum: 0
+        type: integer
+    type: object
+  seckill_pkg_response.Response:
+    properties:
+      code:
+        type: integer
+      data: {}
+      message:
+        type: string
+      traceid:
+        description: 链路id
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact: {}
@@ -6,7 +207,29 @@ info:
   title: Go秒杀系统 API
   version: "1.0"
 paths:
-  /api/login:
+  /api/v1/admin/orders/stats:
+    get:
+      consumes:
+      - application/json
+      description: 获取订单统计信息（管理员专用）
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/seckill_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/seckill_internal_service.OrderStats'
+              type: object
+      security:
+      - Bearer: []
+      summary: 订单统计
+      tags:
+      - 订单管理
+  /api/v1/login:
     post:
       consumes:
       - application/json
@@ -34,7 +257,352 @@ paths:
       summary: 用户登录
       tags:
       - 用户模块
-  /api/register:
+  /api/v1/orders:
+    get:
+      consumes:
+      - application/json
+      description: 获取当前用户的订单列表
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      - description: 订单状态
+        in: query
+        name: status
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/seckill_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/seckill_internal_service.OrderListResponse'
+              type: object
+      security:
+      - Bearer: []
+      summary: 获取订单列表
+      tags:
+      - 订单管理
+  /api/v1/orders/{id}:
+    get:
+      consumes:
+      - application/json
+      description: 根据ID获取订单详情
+      parameters:
+      - description: 订单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/seckill_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/seckill_internal_service.OrderDetailResponse'
+              type: object
+      security:
+      - Bearer: []
+      summary: 获取订单详情
+      tags:
+      - 订单管理
+  /api/v1/orders/{id}/cancel:
+    post:
+      consumes:
+      - application/json
+      description: 取消待支付的订单
+      parameters:
+      - description: 订单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/seckill_pkg_response.Response'
+      security:
+      - Bearer: []
+      summary: 取消订单
+      tags:
+      - 订单管理
+  /api/v1/orders/{id}/pay:
+    post:
+      consumes:
+      - application/json
+      description: 模拟支付订单
+      parameters:
+      - description: 订单ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/seckill_pkg_response.Response'
+      security:
+      - Bearer: []
+      summary: 支付订单
+      tags:
+      - 订单管理
+  /api/v1/orders/no/{order_no}:
+    get:
+      consumes:
+      - application/json
+      description: 根据订单号获取订单详情
+      parameters:
+      - description: 订单号
+        in: path
+        name: order_no
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/seckill_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/seckill_internal_service.OrderDetailResponse'
+              type: object
+      security:
+      - Bearer: []
+      summary: 根据订单号获取订单
+      tags:
+      - 订单管理
+  /api/v1/products:
+    get:
+      consumes:
+      - application/json
+      description: 分页获取商品列表，支持关键词搜索
+      parameters:
+      - default: 1
+        description: 页码
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: 每页数量
+        in: query
+        name: page_size
+        type: integer
+      - description: 搜索关键词
+        in: query
+        name: keyword
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/seckill_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/seckill_internal_service.ProductListResponse'
+              type: object
+      summary: 获取商品列表
+      tags:
+      - 商品管理
+    post:
+      consumes:
+      - application/json
+      description: 创建新商品
+      parameters:
+      - description: 商品信息
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/seckill_internal_service.CreateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/seckill_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/seckill_internal_model.Product'
+              type: object
+      summary: 创建商品
+      tags:
+      - 商品管理
+  /api/v1/products/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: 根据ID删除商品（软删除）
+      parameters:
+      - description: 商品ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/seckill_pkg_response.Response'
+      summary: 删除商品
+      tags:
+      - 商品管理
+    get:
+      consumes:
+      - application/json
+      description: 根据ID获取商品详情
+      parameters:
+      - description: 商品ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/seckill_pkg_response.Response'
+            - properties:
+                data:
+                  $ref: '#/definitions/seckill_internal_model.Product'
+              type: object
+      summary: 获取商品详情
+      tags:
+      - 商品管理
+    put:
+      consumes:
+      - application/json
+      description: 根据ID更新商品信息
+      parameters:
+      - description: 商品ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 商品信息
+        in: body
+        name: product
+        required: true
+        schema:
+          $ref: '#/definitions/seckill_internal_service.UpdateProductRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/seckill_pkg_response.Response'
+      summary: 更新商品
+      tags:
+      - 商品管理
+  /api/v1/products/{id}/stock:
+    get:
+      consumes:
+      - application/json
+      description: 获取商品当前库存（优先读缓存）
+      parameters:
+      - description: 商品ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            allOf:
+            - $ref: '#/definitions/seckill_pkg_response.Response'
+            - properties:
+                data:
+                  type: integer
+              type: object
+      summary: 获取商品库存
+      tags:
+      - 商品管理
+    put:
+      consumes:
+      - application/json
+      description: 设置商品库存（同时更新数据库和缓存）
+      parameters:
+      - description: 商品ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: 库存信息
+        in: body
+        name: stock
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/seckill_pkg_response.Response'
+      summary: 设置商品库存
+      tags:
+      - 商品管理
+  /api/v1/products/{id}/warmup:
+    post:
+      consumes:
+      - application/json
+      description: 秒杀开始前预热库存到Redis
+      parameters:
+      - description: 商品ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/seckill_pkg_response.Response'
+      summary: 库存预热
+      tags:
+      - 商品管理
+  /api/v1/register:
     post:
       consumes:
       - application/json
@@ -64,7 +632,7 @@ paths:
       summary: 用户注册
       tags:
       - 用户模块
-  /api/seckill/buy:
+  /api/v1/seckill/buy:
     post:
       consumes:
       - application/x-www-form-urlencoded

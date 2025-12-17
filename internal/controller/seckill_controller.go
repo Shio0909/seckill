@@ -22,7 +22,7 @@ type SeckillController struct{}
 // @Security Bearer
 // @Param product_id formData int true "商品ID"
 // @Success 200 {object} map[string]interface{} "{"code":0,"msg":"抢购成功"}"
-// @Router /api/seckill/buy [post]
+// @Router /api/v1/seckill/buy [post]
 func (sc *SeckillController) Buy(c *gin.Context) {
 	//1、获取用户ID和商品ID
 	//暂时模拟一个用户id
