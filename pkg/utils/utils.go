@@ -2,6 +2,7 @@ package utils
 
 // 一些通用的工具函数
 import (
+	"errors"
 	"time"
 
 	"seckill/pkg/config"
@@ -9,6 +10,13 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
+
+// Claims 自定义 JWT Claims
+type Claims struct {
+	UserID   uint   `json:"uid"`
+	Username string `json:"username"`
+	jwt.RegisteredClaims
+}
 
 // getJWTSecret 从配置获取 JWT 密钥
 func getJWTSecret() []byte {
@@ -35,27 +43,29 @@ func CheckPasswordHash(password, hash string) bool {
 // GenerateToken 生成JWT token字符串
 func GenerateToken(userID uint, username string) (string, error) {
 	cfg := config.Get().JWT
-	claims := jwt.MapClaims{
-		"uid":      userID,
-		"username": username,
-		"iss":      cfg.Issuer,                               // 签发者
-		"exp":      time.Now().Add(cfg.ExpireTime).Unix(),    // 过期时间
-		"iat":      time.Now().Unix(),                        // 签发时间
+	claims := Claims{
+		UserID:   userID,
+		Username: username,
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    cfg.Issuer,
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(cfg.ExpireTime)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	return token.SignedString(getJWTSecret())
 }
 
 // ParseToken 解析JWT token字符串
-func ParseToken(tokenString string) (jwt.MapClaims, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+func ParseToken(tokenString string) (*Claims, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return getJWTSecret(), nil
 	})
 	if err != nil {
 		return nil, err
 	}
-	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+	if claims, ok := token.Claims.(*Claims); ok && token.Valid {
 		return claims, nil
 	}
-	return nil, err
+	return nil, errors.New("invalid token")
 }

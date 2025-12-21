@@ -108,12 +108,13 @@ type LogConfig struct {
 	Compress   bool   `mapstructure:"compress"`    // 是否压缩
 }
 
-// ConsulConfig Consul 配置（预留）
+// ConsulConfig Consul 配置
 type ConsulConfig struct {
-	Addr        string `mapstructure:"addr"`         // Consul 地址
-	ServiceName string `mapstructure:"service_name"` // 注册的服务名
-	ServicePort int    `mapstructure:"service_port"` // 服务端口
-	HealthCheck string `mapstructure:"health_check"` // 健康检查路径
+	Address             string        `mapstructure:"address"`               // Consul 地址
+	Scheme              string        `mapstructure:"scheme"`                // 协议: http/https
+	HealthCheckInterval time.Duration `mapstructure:"health_check_interval"` // 健康检查间隔
+	HealthCheckTimeout  time.Duration `mapstructure:"health_check_timeout"`  // 健康检查超时
+	DeregisterAfter     time.Duration `mapstructure:"deregister_after"`      // 故障后多久注销
 }
 
 // =============================================================================
@@ -150,9 +151,9 @@ func InitConfig(configPath string) error {
 
 		// 3. 环境变量覆盖
 		// 示例: SECKILL_SERVER_PORT=9090 会覆盖 server.port
-		v.SetEnvPrefix("SECKILL")                           // 环境变量前缀
-		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))  // server.port -> SERVER_PORT
-		v.AutomaticEnv()                                    // 自动读取环境变量
+		v.SetEnvPrefix("SECKILL")                          // 环境变量前缀
+		v.SetEnvKeyReplacer(strings.NewReplacer(".", "_")) // server.port -> SERVER_PORT
+		v.AutomaticEnv()                                   // 自动读取环境变量
 
 		// 4. 解析到结构体
 		Conf = &Config{}

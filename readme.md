@@ -1,10 +1,12 @@
 # 🎫 DaMai-Go：高并发票务秒杀系统（Go 微服务版）
 
-> 仿大麦网高并发票务系统的 Go 语言实现，采用微服务架构，支持百万级并发秒杀场景
+> 仿大麦网高并发票务系统的 Go 语言实现，采用 **gRPC 微服务架构**，支持百万级并发秒杀场景
 
 [![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=flat&logo=go)](https://go.dev/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+[![Architecture](https://img.shields.io/badge/Architecture-Microservices-orange.svg)]()
+[![gRPC](https://img.shields.io/badge/gRPC-Protocol%20Buffers-blue.svg)](https://grpc.io/)
 
 ---
 
@@ -24,73 +26,127 @@
 
 ## 🎯 项目简介
 
-本项目是一个**生产级高并发票务秒杀系统**，参考大麦网架构设计，使用 Go 语言从零实现。项目涵盖了后端开发中的核心技术栈：
+本项目是一个**生产级高并发票务秒杀系统**，参考大麦网架构设计，使用 Go 语言从零实现。项目采用 **gRPC 微服务架构**，涵盖了后端开发中的核心技术栈：
 
-- **高并发处理**：Redis Lua 脚本原子扣减、消息队列异步削峰
-- **微服务架构**：服务拆分、服务发现、配置中心、API 网关
-- **分布式组件**：分布式锁、分布式 ID、分布式事务
-- **云原生部署**：Docker 容器化、Kubernetes 编排、CI/CD 流水线
+- **微服务架构**：gRPC 服务间通信、Consul 服务发现、API Gateway 统一入口
+- **高并发处理**：Redis Lua 脚本原子扣减、消息队列异步削峰、熔断器防雪崩
+- **分布式组件**：分布式锁（Redis）、延迟队列（订单超时）、分布式 ID（雪花算法）
+- **可观测性**：Prometheus 指标监控、结构化日志、链路追踪（规划中）
+- **云原生部署**：Docker 容器化、Kubernetes 编排、服务健康检查
 
 ### 核心业务场景
 
 ```
-用户 -> 网关(限流/鉴权) -> 秒杀服务 -> Redis预扣库存 -> MQ异步 -> 订单服务 -> 支付服务
-                                         ↓
-                                   库存不足/已购买 -> 快速失败返回
+用户 -> API Gateway -> gRPC 服务调用链
+         (限流/鉴权)
+              │
+              ├─> User Service (用户认证)
+              │
+              ├─> Product Service (商品查询)
+              │
+              └─> Seckill Service (秒杀核心)
+                      │
+                      ├─> Redis 预扣库存 (Lua 原子操作)
+                      │
+                      └─> RabbitMQ 异步下单 -> Order Service
+                              │
+                              └─> 库存不足/已购买 -> 快速失败返回
 ```
+
+### 🆕 Phase 2 & 3 架构升级
+
+**Phase 2 已完成功能**：
+- ✅ **服务拆分**：User、Product、Order、Seckill 四大微服务
+- ✅ **gRPC 通信**：Protocol Buffers 定义接口，高性能 RPC 调用
+- ✅ **服务发现**：Consul 注册中心，自动服务注册与健康检查
+- ✅ **API Gateway**：HTTP 到 gRPC 协议转换，统一鉴权与路由
+- ✅ **配置中心**：Consul KV 存储，支持动态配置
+- ✅ **熔断器**：三状态熔断器（Closed/Open/Half-Open），防止级联故障
+- ✅ **单元测试**：熔断器、Consul 客户端完整测试覆盖
+
+**Phase 3 已完成功能**：
+- ✅ **分布式锁**：基于 Redis + Lua 脚本，支持看门狗自动续期
+- ✅ **延迟队列**：基于 Redis ZSET，支持订单超时自动取消
+- ✅ **Prometheus 监控**：HTTP/业务/中间件全方位指标采集
 
 ---
 
 ## 🏗 系统架构
 
-### 目标架构图
+### 当前架构图（Phase 2 - 微服务架构）
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                              客户端层                                        │
 │                    PC / APP / 小程序 / H5                                    │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                    │
+                                    │ HTTP/HTTPS
                                     ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                              接入层                                          │
-│  ┌─────────────┐    ┌─────────────┐    ┌─────────────┐                      │
-│  │   Nginx     │ -> │ API Gateway │ -> │  Sentinel   │                      │
-│  │  (负载均衡)  │    │  (路由/鉴权) │    │  (限流熔断)  │                      │
-│  └─────────────┘    └─────────────┘    └─────────────┘                      │
+│                          API Gateway (Port 8080)                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │  • HTTP → gRPC 协议转换                                              │    │
+│  │  • JWT 鉴权 & 路由转发                                               │    │
+│  │  • 统一错误处理                                                      │    │
+│  │  • 请求日志记录                                                      │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
+                                    │ gRPC
+                    ┌───────────────┼───────────────┐
+                    ▼               ▼               ▼
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                            微服务层                                          │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐          │
-│  │用户服务   │ │商品服务   │ │秒杀服务   │ │订单服务   │ │支付服务   │          │
-│  │user-svc  │ │product   │ │seckill   │ │order-svc │ │pay-svc   │          │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘ └──────────┘          │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                    │
-        ┌───────────────────────────┼───────────────────────────┐
-        ▼                           ▼                           ▼
-┌───────────────┐          ┌───────────────┐          ┌───────────────┐
-│  服务治理层    │          │   消息层       │          │   存储层       │
-│ ┌───────────┐ │          │ ┌───────────┐ │          │ ┌───────────┐ │
-│ │  Consul   │ │          │ │   Kafka   │ │          │ │   MySQL   │ │
-│ │ /Nacos    │ │          │ │  /RabbitMQ│ │          │ │  (主从)    │ │
-│ └───────────┘ │          │ └───────────┘ │          │ └───────────┘ │
-│ ┌───────────┐ │          │ ┌───────────┐ │          │ ┌───────────┐ │
-│ │  Jaeger   │ │          │ │延迟队列     │ │          │ │   Redis   │ │
-│ │ (链路追踪) │ │          │ │(订单超时)   │ │          │ │  Cluster  │ │
-│ └───────────┘ │          │ └───────────┘ │          │ └───────────┘ │
-└───────────────┘          └───────────────┘          └───────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                            可观测性层                                        │
-│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐                        │
-│  │Prometheus│ │ Grafana  │ │   ELK    │ │ Alerting │                        │
-│  │ (指标)   │ │ (可视化)  │ │  (日志)  │ │  (告警)  │                        │
-│  └──────────┘ └──────────┘ └──────────┘ └──────────┘                        │
-└─────────────────────────────────────────────────────────────────────────────┘
+│                            微服务层 (gRPC)                                   │
+│                                                                              │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐   │
+│  │ User Service │  │Product Service│  │Order Service │  │Seckill Service│  │
+│  │  Port 50051  │  │  Port 50052   │  │  Port 50053  │  │  Port 50054   │  │
+│  ├──────────────┤  ├──────────────┤  ├──────────────┤  ├──────────────┤   │
+│  │• 用户注册登录 │  │• 商品 CRUD    │  │• 订单创建    │  │• 库存预扣减   │   │
+│  │• Token 验证  │  │• 库存预热     │  │• 订单查询    │  │• 防重复购买   │   │
+│  │• 用户信息    │  │• 商品列表     │  │• 雪花 ID     │  │• MQ 异步下单  │   │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────┘   │
+│         │                  │                  │                  │          │
+│         └──────────────────┴──────────────────┴──────────────────┘          │
+│                                    │                                         │
+└────────────────────────────────────┼─────────────────────────────────────────┘
+                                     │
+        ┌────────────────────────────┼────────────────────────────┐
+        ▼                            ▼                            ▼
+┌──────────────────┐      ┌──────────────────┐      ┌──────────────────┐
+│   服务治理层      │      │     消息层        │      │     存储层        │
+│                  │      │                  │      │                  │
+│ ┌──────────────┐ │      │ ┌──────────────┐ │      │ ┌──────────────┐ │
+│ │   Consul     │ │      │ │  RabbitMQ    │ │      │ │    MySQL     │ │
+│ │ Port 8500    │ │      │ │  Port 6672   │ │      │ │  Port 3307   │ │
+│ ├──────────────┤ │      │ ├──────────────┤ │      │ ├──────────────┤ │
+│ │• 服务注册    │ │      │ │• 秒杀队列    │ │      │ │• 用户表      │ │
+│ │• 服务发现    │ │      │ │• 异步削峰    │ │      │ │• 商品表      │ │
+│ │• 健康检查    │ │      │ │• 消息持久化  │ │      │ │• 订单表      │ │
+│ │• KV 配置中心 │ │      │ └──────────────┘ │      │ └──────────────┘ │
+│ └──────────────┘ │      │                  │      │ ┌──────────────┐ │
+│                  │      │                  │      │ │    Redis     │ │
+│ ┌──────────────┐ │      │                  │      │ │  Port 6379   │ │
+│ │ 熔断器管理器  │ │      │                  │      │ ├──────────────┤ │
+│ ├──────────────┤ │      │                  │      │ │• 库存缓存    │ │
+│ │• Closed      │ │      │                  │      │ │• Lua 脚本    │ │
+│ │• Open        │ │      │                  │      │ │• 购买记录    │ │
+│ │• Half-Open   │ │      │                  │      │ └──────────────┘ │
+│ └──────────────┘ │      │                  │      │                  │
+└──────────────────┘      └──────────────────┘      └──────────────────┘
+```
+
+### 服务调用链示例
+
+```
+秒杀请求流程：
+1. 客户端 → API Gateway (HTTP POST /api/seckill)
+2. Gateway → Seckill Service (gRPC SeckillProduct)
+3. Seckill Service → Redis (Lua 脚本扣减库存)
+4. Seckill Service → RabbitMQ (发送订单消息)
+5. Order Service ← RabbitMQ (消费消息创建订单)
+6. Order Service → MySQL (持久化订单)
+7. Gateway ← Seckill Service (返回秒杀结果)
+8. 客户端 ← Gateway (HTTP 响应)
 ```
 
 ---
@@ -578,22 +634,129 @@ message ValidateTokenResponse {
 
 ---
 
-### 📅 阶段三：高级特性（2-3 周）
+### 📅 阶段三：高级特性（2-3 周）🚧 进行中
 
 **目标**：引入高级分布式组件，提升系统可靠性和可观测性
 
 #### 任务清单
 
-| 序号 | 任务 | 优先级 | 预计时间 |
-|------|------|--------|----------|
-| 3.1 | Kafka 消息队列迁移 | P0 | 3天 |
-| 3.2 | 分布式锁实现（Redlock） | P0 | 1天 |
-| 3.3 | 延迟队列（订单超时取消） | P0 | 2天 |
-| 3.4 | Prometheus + Grafana 监控 | P0 | 2天 |
-| 3.5 | ELK 日志收集 | P1 | 2天 |
-| 3.6 | 分布式事务（Saga 模式） | P1 | 3天 |
-| 3.7 | 支付服务（支付宝沙箱） | P2 | 2天 |
-| 3.8 | 消息可靠投递（Outbox 模式） | P1 | 2天 |
+| 序号 | 任务 | 优先级 | 状态 | 实现文件 |
+|------|------|--------|------|----------|
+| 3.1 | Kafka 消息队列迁移 | P0 | ⏳ 待做 | - |
+| 3.2 | 分布式锁实现（Redis） | P0 | ✅ 完成 | `pkg/distlock/distlock.go` |
+| 3.3 | 延迟队列（订单超时取消） | P0 | ✅ 完成 | `pkg/delayqueue/delayqueue.go` |
+| 3.4 | Prometheus + Grafana 监控 | P0 | ✅ 完成 | `pkg/metrics/metrics.go` |
+| 3.5 | ELK 日志收集 | P1 | ⏳ 待做 | - |
+| 3.6 | 分布式事务（Saga 模式） | P1 | ⏳ 待做 | - |
+| 3.7 | 支付服务（支付宝沙箱） | P2 | ⏳ 待做 | - |
+| 3.8 | 消息可靠投递（Outbox 模式） | P1 | ⏳ 待做 | - |
+
+#### 已完成组件详解
+
+##### 3.2 分布式锁（pkg/distlock）
+
+**功能特性**：
+- ✅ Redis SET NX PX 原子获取锁
+- ✅ Lua 脚本保证释放锁的原子性
+- ✅ 看门狗（Watchdog）自动续期机制
+- ✅ 支持重试策略（自定义重试次数和间隔）
+- ✅ 函数式选项模式配置
+
+**核心代码学习点**：
+
+```go
+// 获取锁并自动续期
+lock, err := distlock.AcquireLock(ctx, "order:123", 
+    distlock.WithTTL(30*time.Second),
+    distlock.WithWatchDog(),
+    distlock.WithRetry(3, 100*time.Millisecond),
+)
+if err != nil {
+    return err
+}
+defer lock.Unlock(ctx)
+
+// 执行业务逻辑...
+```
+
+**面试考点**：
+1. 为什么用 Lua 脚本而不是多条 Redis 命令？
+2. 看门狗续期间隔如何设置？（TTL/3）
+3. Redis 主从切换时锁可能丢失怎么办？（Redlock）
+
+##### 3.3 延迟队列（pkg/delayqueue）
+
+**功能特性**：
+- ✅ 基于 Redis ZSET 实现（Score = 到期时间戳）
+- ✅ Lua 脚本原子性获取并删除到期任务
+- ✅ 支持任务重试机制
+- ✅ 死信队列处理失败任务
+- ✅ 订单超时取消专用封装
+
+**核心代码学习点**：
+
+```go
+// 创建订单超时队列
+queue := delayqueue.NewOrderTimeoutQueue(redisClient, 30*time.Minute)
+
+// 设置超时处理器
+queue.SetHandler(func(ctx context.Context, payload OrderTimeoutPayload) error {
+    return orderService.CancelOrder(ctx, payload.OrderID, "超时未支付")
+})
+
+// 创建订单时加入超时队列
+queue.AddOrder(ctx, OrderTimeoutPayload{
+    OrderID:   "order-001",
+    UserID:    1,
+    ProductID: 100,
+})
+
+// 支付成功后移除
+queue.RemoveOrder(ctx, "order-001")
+```
+
+**面试考点**：
+1. 延迟队列有哪些实现方案？各自优缺点？
+2. 如何保证任务不被重复消费？
+3. 消费失败的任务如何处理？
+
+##### 3.4 Prometheus 监控（pkg/metrics）
+
+**功能特性**：
+- ✅ HTTP 请求指标（QPS、延迟分布、错误率）
+- ✅ 秒杀业务指标（请求量、订单量、库存）
+- ✅ 中间件指标（Redis、RabbitMQ、熔断器）
+- ✅ Gin 中间件自动采集
+- ✅ /metrics 端点暴露
+
+**核心指标**：
+
+| 指标名 | 类型 | 说明 |
+|--------|------|------|
+| `seckill_http_requests_total` | Counter | HTTP 请求总数 |
+| `seckill_http_request_duration_seconds` | Histogram | 请求延迟分布 |
+| `seckill_business_seckill_requests_total` | Counter | 秒杀请求总数 |
+| `seckill_business_product_stock` | Gauge | 商品实时库存 |
+| `seckill_circuit_breaker_state` | Gauge | 熔断器状态 |
+
+**Grafana 大盘示例查询**：
+
+```promql
+# QPS 计算
+rate(seckill_http_requests_total[5m])
+
+# P99 延迟
+histogram_quantile(0.99, rate(seckill_http_request_duration_seconds_bucket[5m]))
+
+# 错误率
+sum(rate(seckill_http_requests_total{status=~"5.."}[5m])) 
+/ sum(rate(seckill_http_requests_total[5m]))
+```
+
+**面试考点**：
+1. Prometheus 四种指标类型分别用于什么场景？
+2. Histogram vs Summary 的区别？
+3. 什么是高基数问题？如何避免？
 
 #### Kafka 消息层抽象
 
@@ -786,43 +949,377 @@ CMD ["./seckill"]
 
 ### 环境要求
 
-- Go 1.24+
-- Docker & Docker Compose
-- Make (可选)
+- **Go 1.24+**
+- **Docker & Docker Compose** (用于基础设施)
+- **Consul** (服务注册中心) - [下载地址](https://developer.hashicorp.com/consul/downloads)
+- **Kubernetes** (可选，用于 K8s 部署)
 
-### 本地开发
+### 📋 微服务架构启动流程图
 
-```bash
-# 1. 克隆项目
-git clone https://github.com/Shio0909/seckill.git
-cd seckill
-
-# 2. 启动依赖服务（MySQL/Redis/RabbitMQ）
-docker-compose -f deploy/docker-compose.yaml up -d
-
-# 3. 初始化配置
-cp config/config.example.yaml config/config.yaml
-
-# 4. 运行服务
-go run cmd/main.go
-
-# 5. 访问 Swagger 文档
-# http://localhost:8080/swagger/index.html
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                        启动顺序（重要！）                                    │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                              │
+│  Step 1: 基础设施                                                            │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐                    │
+│  │  MySQL   │  │  Redis   │  │ RabbitMQ │  │  Consul  │                    │
+│  │  :3307   │  │  :6379   │  │  :6672   │  │  :8500   │                    │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘                    │
+│       │             │             │             │                           │
+│       └─────────────┴─────────────┴─────────────┘                           │
+│                              │                                               │
+│                              ▼                                               │
+│  Step 2: 微服务（可并行启动）                                                 │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐                    │
+│  │   User   │  │ Product  │  │  Order   │  │ Seckill  │                    │
+│  │  :50051  │  │  :50052  │  │  :50053  │  │  :50054  │                    │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘                    │
+│       │             │             │             │                           │
+│       └─────────────┴─────────────┴─────────────┘                           │
+│                              │                                               │
+│                              ▼                                               │
+│  Step 3: API Gateway                                                         │
+│  ┌──────────────────────────────────────┐                                   │
+│  │            API Gateway               │                                   │
+│  │              :8080                   │                                   │
+│  │  (等待所有微服务注册到 Consul 后启动) │                                   │
+│  └──────────────────────────────────────┘                                   │
+│                                                                              │
+└─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### K8s 部署
+---
+
+### 🚀 方式一：一键启动（推荐）
+
+#### Step 1: 启动基础设施服务
+
+```powershell
+# Windows PowerShell - 启动 K8s 端口转发
+.\dev_start.ps1
+
+# 输出示例：
+# ✅ MySQL: 3307
+# ✅ Redis: 6379
+# ✅ RabbitMQ: 6672 / 15672
+```
+
+<details>
+<summary>📌 没有 K8s？使用 Docker Compose 代替</summary>
 
 ```bash
-# 1. 部署中间件
+# 在项目根目录执行
+docker-compose -f deploy/docker-compose.yaml up -d
+
+# 等待服务就绪
+docker-compose -f deploy/docker-compose.yaml ps
+```
+
+</details>
+
+#### Step 2: 启动 Consul
+
+```bash
+# 新开一个终端，启动 Consul（开发模式）
+consul agent -dev
+
+# 成功启动后访问: http://localhost:8500
+# 看到 Consul UI 界面即表示启动成功
+```
+
+#### Step 3: 启动所有微服务
+
+```powershell
+# Windows PowerShell - 一键启动所有微服务
+.\start_microservices.ps1
+
+# 该脚本会自动：
+# ✅ 检查 Consul 是否运行
+# ✅ 检查基础设施服务状态
+# ✅ 依次启动 5 个服务（每个在独立窗口）
+# ✅ 验证服务健康状态
+```
+
+#### Step 4: 验证服务状态
+
+```bash
+# 1. 查看 Consul 服务注册
+curl http://localhost:8500/v1/catalog/services
+# 预期输出: {"consul":[],"order-service":[],"product-service":[],"seckill-service":[],"user-service":[]}
+
+# 2. 测试 Gateway 健康检查
+curl http://localhost:8080/health
+# 预期输出: {"status":"ok"}
+
+# 3. 测试用户注册接口
+curl -X POST http://localhost:8080/api/user/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"test","password":"123456","phone":"13800138000"}'
+```
+
+#### Step 5: 停止服务
+
+```powershell
+# 停止所有微服务
+.\stop_microservices.ps1
+
+# 停止 Consul: Ctrl+C
+
+# 停止基础设施
+docker-compose -f deploy/docker-compose.yaml down
+# 或关闭 K8s 端口转发窗口
+```
+
+---
+
+### 🛠 方式二：手动启动（开发调试）
+
+适合需要单独调试某个服务的场景。
+
+#### Step 1: 确认配置文件
+
+```yaml
+# config/config.yaml 核心配置项
+
+# Consul 地址（服务注册发现）
+consul:
+  address: 127.0.0.1:8500
+
+# 数据库连接
+mysql:
+  host: 127.0.0.1
+  port: 3307                   # K8s 转发端口
+
+# Redis 连接
+redis:
+  addr: 127.0.0.1:6379
+
+# RabbitMQ 连接
+rabbitmq:
+  url: amqp://guest:guest@localhost:6672/
+```
+
+#### Step 2: 启动基础设施 + Consul
+
+```bash
+# Terminal 1 - K8s 端口转发（或 Docker Compose）
+.\dev_start.ps1
+
+# Terminal 2 - Consul
+consul agent -dev
+```
+
+#### Step 3: 依次启动微服务
+
+```bash
+# Terminal 3 - User Service (gRPC:50051)
+cd e:\learngo\seckill
+go run services/user/main.go
+# 或指定端口: go run services/user/main.go -port 50051
+
+# Terminal 4 - Product Service (gRPC:50052)
+go run services/product/main.go -port 50052
+
+# Terminal 5 - Order Service (gRPC:50053)
+go run services/order/main.go -port 50053
+
+# Terminal 6 - Seckill Service (gRPC:50054)
+go run services/seckill/main.go -port 50054
+
+# Terminal 7 - API Gateway (HTTP:8080)
+go run services/gateway/main.go -port 8080
+```
+
+#### Step 4: 验证服务
+
+```bash
+# 查看 Consul UI
+start http://localhost:8500
+
+# 查看 RabbitMQ 管理界面
+start http://localhost:15672
+# 账号: guest / guest
+```
+
+---
+
+### 🐳 方式三：Docker Compose 一键部署
+
+```bash
+# 1. 构建所有镜像
+docker-compose -f deploy/docker-compose.all.yaml build
+
+# 2. 启动所有服务（包括基础设施和微服务）
+docker-compose -f deploy/docker-compose.all.yaml up -d
+
+# 3. 查看服务状态
+docker-compose -f deploy/docker-compose.all.yaml ps
+
+# 4. 查看日志
+docker-compose -f deploy/docker-compose.all.yaml logs -f gateway
+
+# 5. 停止所有服务
+docker-compose -f deploy/docker-compose.all.yaml down
+```
+
+---
+
+### ☸️ 方式四：Kubernetes 生产部署
+
+```bash
+# 1. 部署基础设施
+kubectl apply -f deploy/k8s/namespace.yaml
 kubectl apply -f deploy/k8s/mysql.yaml
 kubectl apply -f deploy/k8s/redis.yaml
 kubectl apply -f deploy/k8s/rabbitmq.yaml
+kubectl apply -f deploy/k8s/consul.yaml
 
-# 2. 部署应用
-kubectl apply -f deploy/k8s/seckill.yaml
+# 2. 等待基础设施就绪
+kubectl wait --for=condition=ready pod -l app=mysql --timeout=120s
+kubectl wait --for=condition=ready pod -l app=redis --timeout=60s
 
-# 3. 端口转发（本地调试）
-kubectl port-forward svc/seckill-service 8080:8080
+# 3. 部署微服务
+kubectl apply -f deploy/k8s/user-service.yaml
+kubectl apply -f deploy/k8s/product-service.yaml
+kubectl apply -f deploy/k8s/order-service.yaml
+kubectl apply -f deploy/k8s/seckill-service.yaml
+kubectl apply -f deploy/k8s/gateway.yaml
+
+# 4. 查看 Pod 状态
+kubectl get pods -w
+
+# 5. 本地访问（端口转发）
+kubectl port-forward svc/gateway-service 8080:8080
+```
+
+---
+
+### 📊 服务端口说明
+
+| 服务 | 协议 | 端口 | Consul 名称 | 说明 |
+|------|------|------|-------------|------|
+| **User Service** | gRPC | 50051 | `user-service` | 用户注册/登录/认证 |
+| **Product Service** | gRPC | 50052 | `product-service` | 商品 CRUD/库存预热 |
+| **Order Service** | gRPC | 50053 | `order-service` | 订单创建/查询 |
+| **Seckill Service** | gRPC | 50054 | `seckill-service` | 秒杀核心逻辑 |
+| **API Gateway** | HTTP | 8080 | `gateway` | 统一入口/路由/鉴权 |
+| **Consul** | HTTP | 8500 | - | 服务注册中心 |
+| **MySQL** | TCP | 3307 | - | 数据持久化 |
+| **Redis** | TCP | 6379 | - | 缓存/库存/分布式锁 |
+| **RabbitMQ** | AMQP | 6672 | - | 异步消息队列 |
+| **RabbitMQ UI** | HTTP | 15672 | - | 管理界面 |
+
+---
+
+### 🔌 API 接口测试
+
+启动成功后，可以使用以下命令测试接口：
+
+```bash
+# 1. 用户注册
+curl -X POST http://localhost:8080/api/user/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","password":"123456","phone":"13800138000"}'
+
+# 2. 用户登录（获取 Token）
+curl -X POST http://localhost:8080/api/user/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"testuser","password":"123456"}'
+
+# 3. 获取商品列表（需要 Token）
+TOKEN="你的token"
+curl -X GET "http://localhost:8080/api/products?page=1&page_size=10" \
+  -H "Authorization: Bearer $TOKEN"
+
+# 4. 秒杀商品（需要 Token）
+curl -X POST http://localhost:8080/api/seckill \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{"product_id":1,"quantity":1}'
+```
+
+---
+
+### ❓ 常见问题
+
+<details>
+<summary><b>Q1: Consul 连接失败？</b></summary>
+
+```bash
+# 1. 确保 Consul 已启动
+consul agent -dev
+
+# 2. 检查端口占用
+netstat -ano | findstr 8500
+
+# 3. 检查 config.yaml 中的地址配置
+consul:
+  address: 127.0.0.1:8500
+```
+
+</details>
+
+<details>
+<summary><b>Q2: gRPC 服务无法注册到 Consul？</b></summary>
+
+```bash
+# 1. 查看服务启动日志，是否有错误
+# 2. 确保 Consul 已启动并可访问
+curl http://localhost:8500/v1/status/leader
+
+# 3. 手动检查服务列表
+curl http://localhost:8500/v1/catalog/services
+```
+
+</details>
+
+<details>
+<summary><b>Q3: API Gateway 调用微服务失败？</b></summary>
+
+```bash
+# 1. 检查 Consul 中是否注册了所有服务
+curl http://localhost:8500/v1/catalog/services
+
+# 2. 检查服务健康状态
+curl http://localhost:8500/v1/health/service/user-service
+
+# 3. 检查 Gateway 日志中的错误信息
+```
+
+</details>
+
+<details>
+<summary><b>Q4: 数据库连接失败？</b></summary>
+
+```bash
+# 1. 检查 MySQL 是否启动
+kubectl get pods | grep mysql
+
+# 2. 检查端口转发是否正常
+kubectl port-forward svc/mysql-service 3307:3306
+
+# 3. 测试数据库连接
+mysql -h 127.0.0.1 -P 3307 -u root -p
+```
+
+</details>
+
+<details>
+<summary><b>Q5: Windows 下 PowerShell 脚本执行报错？</b></summary>
+
+```powershell
+# 设置执行策略（管理员运行）
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+# 如果还是不行，尝试：
+powershell -ExecutionPolicy Bypass -File .\start_microservices.ps1
+```
+
+</details>
+
+# 测试连接
+mysql -h 127.0.0.1 -P 3307 -u root -p
 ```
 
 ---
@@ -831,41 +1328,130 @@ kubectl port-forward svc/seckill-service 8080:8080
 
 ```
 seckill/
-├── cmd/                       # 应用入口
-│   └── main.go
-├── config/                    # 配置文件
-│   └── config.yaml
-├── deploy/                    # 部署配置
+├── cmd/                           # 【已废弃】单体应用入口
+│   └── main.go                    # 原单体架构主程序
+│
+├── services/                      # 【核心】微服务目录
+│   ├── user/                      # 用户服务 (gRPC:50051)
+│   │   ├── main.go                # 服务启动入口
+│   │   └── handler/
+│   │       └── user_handler.go    # gRPC 接口实现
+│   ├── product/                   # 商品服务 (gRPC:50052)
+│   │   ├── main.go
+│   │   └── handler/
+│   │       └── product_handler.go
+│   ├── order/                     # 订单服务 (gRPC:50053)
+│   │   ├── main.go
+│   │   └── handler/
+│   │       └── order_handler.go
+│   ├── seckill/                   # 秒杀服务 (gRPC:50054)
+│   │   ├── main.go
+│   │   └── handler/
+│   │       └── seckill_handler.go # 核心秒杀逻辑
+│   └── gateway/                   # API 网关 (HTTP:8080)
+│       ├── main.go
+│       └── handlers/
+│           └── gateway_handler.go # HTTP → gRPC 转换
+│
+├── proto/                         # Protocol Buffers 定义
+│   ├── user/
+│   │   ├── user.proto             # 用户服务接口定义
+│   │   └── user.pb.go             # 生成的 Go 代码
+│   ├── product/
+│   │   ├── product.proto
+│   │   └── product.pb.go
+│   ├── order/
+│   │   ├── order.proto
+│   │   └── order.pb.go
+│   └── seckill/
+│       ├── seckill.proto
+│       └── seckill.pb.go
+│
+├── pkg/                           # 共享包
+│   ├── breaker/                   # 【新增】熔断器
+│   │   ├── breaker.go             # 三状态熔断器实现
+│   │   └── breaker_test.go        # 单元测试
+│   ├── consul/                    # 【新增】服务注册发现
+│   │   ├── consul.go              # Consul 客户端封装
+│   │   └── consul_test.go         # 单元测试
+│   ├── grpcx/                     # 【新增】gRPC 工具
+│   │   ├── server.go              # gRPC 服务端封装
+│   │   └── client.go              # gRPC 客户端连接池
+│   ├── config/                    # 配置管理
+│   │   └── config.go              # Viper 配置加载
+│   ├── database/                  # 数据库
+│   │   └── mysql.go               # MySQL 连接池
+│   ├── redis/                     # Redis
+│   │   ├── redis.go               # Redis 客户端
+│   │   └── scripts.go             # Lua 脚本（库存扣减）
+│   ├── rabbitmq/                  # 消息队列
+│   │   └── rabbitmq.go            # RabbitMQ 封装
+│   ├── logger/                    # 日志
+│   │   └── logger.go              # Zap 日志封装
+│   ├── snowflake/                 # 分布式 ID
+│   │   └── snowflake.go           # 雪花算法
+│   └── utils/                     # 工具函数
+│       └── utils.go               # JWT、密码加密等
+│
+├── internal/                      # 【保留】单体架构代码
+│   ├── controller/                # HTTP 控制器（已迁移到 Gateway）
+│   ├── middleware/                # 中间件（限流、鉴权、日志）
+│   ├── model/                     # 数据模型（User/Product/Order）
+│   ├── router/                    # 路由定义
+│   └── service/                   # 业务逻辑（已拆分到微服务）
+│
+├── config/                        # 配置文件
+│   └── config.yaml                # 主配置（数据库、Redis、Consul 等）
+│
+├── deploy/                        # 部署配置
 │   ├── docker/
-│   │   └── Dockerfile
+│   │   ├── Dockerfile.user        # 用户服务镜像
+│   │   ├── Dockerfile.product
+│   │   ├── Dockerfile.order
+│   │   ├── Dockerfile.seckill
+│   │   └── Dockerfile.gateway
 │   └── k8s/
-│       ├── mysql.yaml
-│       ├── redis.yaml
-│       └── rabbitmq.yaml
-├── docs/                      # Swagger 文档
-├── internal/                  # 内部代码（不对外暴露）
-│   ├── controller/            # HTTP 控制器
-│   ├── middleware/            # 中间件
-│   ├── model/                 # 数据模型
-│   ├── router/                # 路由定义
-│   └── service/               # 业务逻辑
-├── pkg/                       # 可复用包
-│   ├── broker/                # 消息队列抽象（待实现）
-│   ├── database/              # MySQL 连接
-│   ├── logger/                # 日志封装
-│   ├── rabbitmq/              # RabbitMQ 客户端
-│   ├── redis/                 # Redis 客户端 + Lua脚本
-│   ├── response/              # 统一响应（待完善）
-│   ├── snowflake/             # 雪花算法
-│   └── utils/                 # 工具函数
-├── test/                      # 测试文件（待添加）
+│       ├── mysql.yaml             # MySQL StatefulSet
+│       ├── redis.yaml             # Redis Deployment
+│       ├── rabbitmq.yaml          # RabbitMQ Deployment
+│       ├── consul.yaml            # Consul Deployment
+│       ├── user-service.yaml      # 用户服务 K8s 配置
+│       ├── product-service.yaml
+│       ├── order-service.yaml
+│       ├── seckill-service.yaml
+│       └── gateway.yaml
+│
+├── docs/                          # API 文档
+│   ├── docs.go                    # Swagger 生成文件
+│   ├── swagger.json
+│   └── swagger.yaml
+│
+├── scripts/                       # 【新增】脚本工具
+│   ├── start_microservices.ps1   # 一键启动所有微服务
+│   ├── stop_microservices.ps1    # 停止所有微服务
+│   └── dev_start.ps1              # 启动基础设施端口转发
+│
+├── test/                          # 测试（待完善）
 │   ├── unit/
 │   └── integration/
-├── go.mod
-├── go.sum
-├── Makefile                   # 构建脚本（待添加）
-└── README.md
+│
+├── go.mod                         # Go 模块定义
+├── go.sum                         # 依赖锁定
+├── Makefile                       # 构建脚本（待添加）
+└── README.md                      # 项目文档
 ```
+
+### 核心目录说明
+
+| 目录 | 说明 | 重要程度 |
+|------|------|----------|
+| `services/` | **微服务实现**，每个服务独立运行 | ⭐⭐⭐⭐⭐ |
+| `proto/` | **gRPC 接口定义**，服务间通信协议 | ⭐⭐⭐⭐⭐ |
+| `pkg/breaker/` | **熔断器**，防止级联故障 | ⭐⭐⭐⭐ |
+| `pkg/consul/` | **服务发现**，动态服务注册 | ⭐⭐⭐⭐⭐ |
+| `pkg/grpcx/` | **gRPC 封装**，连接池与拦截器 | ⭐⭐⭐⭐ |
+| `pkg/redis/scripts.go` | **Lua 脚本**，原子库存扣减 | ⭐⭐⭐⭐⭐ |
+| `internal/` | 单体架构遗留代码，逐步废弃 | ⭐⭐ |
 
 ---
 

@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package order;
+
+option go_package = "seckill/proto/order";
+
+// OrderService 订单服务接口
+service OrderService {
+    // 创建订单
+    rpc CreateOrder(CreateOrderRequest) returns (CreateOrderResponse);
+    // 获取订单详情
+    rpc GetOrder(GetOrderRequest) returns (GetOrderResponse);
+    // 获取用户订单列表
+    rpc ListOrders(ListOrdersRequest) returns (ListOrdersResponse);
+    // 取消订单
+    rpc CancelOrder(CancelOrderRequest) returns (CancelOrderResponse);
+    // 支付订单
+    rpc PayOrder(PayOrderRequest) returns (PayOrderResponse);
+    // 根据订单号查询
+    rpc GetOrderByNo(GetOrderByNoRequest) returns (GetOrderResponse);
+}
+
+// 订单状态枚举
+enum OrderStatus {
+    ORDER_STATUS_UNKNOWN = 0;
+    ORDER_STATUS_PENDING = 1;    // 待支付
+    ORDER_STATUS_PAID = 2;       // 已支付
+    ORDER_STATUS_SHIPPED = 3;    // 已发货
+    ORDER_STATUS_COMPLETED = 4;  // 已完成
+    ORDER_STATUS_CANCELLED = 5;  // 已取消
+    ORDER_STATUS_CLOSED = 6;     // 已关闭
+}
+
+message Order {
+    uint64 id = 1;
+    string order_no = 2;
+    uint64 user_id = 3;
+    uint64 product_id = 4;
+    string product_name = 5;
+    double price = 6;
+    int32 quantity = 7;
+    double total_amount = 8;
+    OrderStatus status = 9;
+    int64 created_at = 10;
+    int64 paid_at = 11;
+}
+
+message CreateOrderRequest {
+    uint64 user_id = 1;
+    uint64 product_id = 2;
+    int32 quantity = 3;
+    double price = 4;
+}
+
+message CreateOrderResponse {
+    int32 code = 1;
+    string message = 2;
+    string order_no = 3;
+    uint64 order_id = 4;
+}
+
+message GetOrderRequest {
+    uint64 order_id = 1;
+    uint64 user_id = 2;  // 用于权限校验
+}
+
+message GetOrderResponse {
+    int32 code = 1;
+    string message = 2;
+    Order order = 3;
+}
+
+message GetOrderByNoRequest {
+    string order_no = 1;
+    uint64 user_id = 2;
+}
+
+message ListOrdersRequest {
+    uint64 user_id = 1;
+    int32 page = 2;
+    int32 page_size = 3;
+    OrderStatus status = 4;  // 0 表示全部
+}
+
+message ListOrdersResponse {
+    int32 code = 1;
+    string message = 2;
+    int64 total = 3;
+    repeated Order orders = 4;
+}
+
+message CancelOrderRequest {
+    uint64 order_id = 1;
+    uint64 user_id = 2;
+}
+
+message CancelOrderResponse {
+    int32 code = 1;
+    string message = 2;
+}
+
+message PayOrderRequest {
+    uint64 order_id = 1;
+    uint64 user_id = 2;
+}
+
+message PayOrderResponse {
+    int32 code = 1;
+    string message = 2;
+}

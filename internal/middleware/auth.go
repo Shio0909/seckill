@@ -33,10 +33,9 @@ func JWTAuth() gin.HandlerFunc {
 		}
 
 		// 4. 将 UserID 存入 Context，供后续接口使用
-		// 注意：claims["uid"] 解析出来可能是 float64，需要转换
-		if uid, ok := claims["uid"].(float64); ok {
-			c.Set("uid", int(uid))
-		}
+		// 使用自定义 Claims 类型直接访问字段
+		c.Set("uid", int(claims.UserID))
+		c.Set("username", claims.Username)
 
 		c.Next()
 	}

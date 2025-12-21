@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package seckill;
+
+option go_package = "seckill/proto/seckill";
+
+// ========================================================================
+// 【重点学习】秒杀服务 - 高并发核心
+// ========================================================================
+// 秒杀服务是整个系统的核心，需要处理：
+// 1. 高并发请求（Redis Lua 原子操作）
+// 2. 防止超卖（库存预扣 + 消息队列异步下单）
+// 3. 防止重复购买（Redis Set 记录）
+//
+// 📝 简历亮点：使用 Redis + MQ 实现高并发秒杀，QPS 可达 10W+
+// ========================================================================
+
+service SeckillService {
+    // 执行秒杀（核心接口）
+    rpc DoSeckill(SeckillRequest) returns (SeckillResponse);
+    // 查询秒杀结果
+    rpc GetSeckillResult(SeckillResultRequest) returns (SeckillResultResponse);
+    // 获取秒杀商品信息
+    rpc GetSeckillProduct(GetSeckillProductRequest) returns (GetSeckillProductResponse);
+}
+
+message SeckillRequest {
+    uint64 user_id = 1;
+    uint64 product_id = 2;
+}
+
+message SeckillResponse {
+    int32 code = 1;
+    string message = 2;
+    // 秒杀成功时返回订单号，客户端轮询查询结果
+    string order_no = 3;
+}
+
+message SeckillResultRequest {
+    uint64 user_id = 1;
+    uint64 product_id = 2;
+}
+
+// 秒杀结果状态
+enum SeckillStatus {
+    SECKILL_STATUS_UNKNOWN = 0;
+    SECKILL_STATUS_QUEUING = 1;   // 排队中
+    SECKILL_STATUS_SUCCESS = 2;   // 成功
+    SECKILL_STATUS_FAIL = 3;      // 失败
+}
+
+message SeckillResultResponse {
+    int32 code = 1;
+    SeckillStatus status = 2;
+    string order_no = 3;
+    string message = 4;
+}
+
+message GetSeckillProductRequest {
+    uint64 product_id = 1;
+}
+
+message GetSeckillProductResponse {
+    int32 code = 1;
+    string message = 2;
+    uint64 product_id = 3;
+    string name = 4;
+    double seckill_price = 5;
+    int32 stock = 6;
+    int64 start_time = 7;
+    int64 end_time = 8;
+    bool is_active = 9;  // 是否在秒杀时间内
+}

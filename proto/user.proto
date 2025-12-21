@@ -1,0 +1,94 @@
+// ========================================================================
+// 【重点学习】Protocol Buffers 定义
+// ========================================================================
+// Proto 文件是 gRPC 服务的契约，定义了：
+// 1. 服务接口（service）- RPC 方法签名
+// 2. 消息结构（message）- 请求/响应数据格式
+//
+// 📝 简历亮点：
+// - 理解 IDL（接口定义语言）在微服务中的作用
+// - Proto3 语法：字段编号、类型、repeated/optional
+// - 为什么用 Proto 而不是 JSON？（性能、类型安全、向前兼容）
+//
+// 🔥 面试高频：
+// Q: gRPC 和 REST 的区别？
+// A: gRPC 用 HTTP/2 + Protobuf，支持双向流、性能更高；
+//    REST 用 HTTP/1.1 + JSON，更通用、调试方便
+// ========================================================================
+
+syntax = "proto3";
+
+package user;
+
+option go_package = "seckill/proto/user";
+
+// UserService 用户服务接口定义
+service UserService {
+    // 用户注册
+    rpc Register(RegisterRequest) returns (RegisterResponse);
+    // 用户登录
+    rpc Login(LoginRequest) returns (LoginResponse);
+    // 验证 Token
+    rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+    // 获取用户信息
+    rpc GetUser(GetUserRequest) returns (GetUserResponse);
+}
+
+// ========================================================================
+// 【重点学习】消息定义最佳实践
+// ========================================================================
+// 1. 字段编号一旦分配不要改变（向前兼容）
+// 2. 使用语义化的字段名
+// 3. 预留字段编号给未来扩展
+// ========================================================================
+
+message RegisterRequest {
+    string username = 1;
+    string password = 2;
+    string phone = 3;
+}
+
+message RegisterResponse {
+    int32 code = 1;
+    string message = 2;
+    uint64 user_id = 3;
+}
+
+message LoginRequest {
+    string username = 1;
+    string password = 2;
+}
+
+message LoginResponse {
+    int32 code = 1;
+    string message = 2;
+    string token = 3;
+    uint64 user_id = 4;
+}
+
+message ValidateTokenRequest {
+    string token = 1;
+}
+
+message ValidateTokenResponse {
+    bool valid = 1;
+    uint64 user_id = 2;
+    string username = 3;
+}
+
+message GetUserRequest {
+    uint64 user_id = 1;
+}
+
+message GetUserResponse {
+    int32 code = 1;
+    string message = 2;
+    User user = 3;
+}
+
+message User {
+    uint64 id = 1;
+    string username = 2;
+    string phone = 3;
+    int64 created_at = 4;
+}

@@ -82,3 +82,14 @@ func SendSeckillMessage(uid int64, pid int64) error {
 	}
 	return nil
 }
+
+// Close 关闭 RabbitMQ 连接
+func Close() {
+	if Channel != nil {
+		Channel.Close()
+	}
+	if Conn != nil {
+		Conn.Close()
+	}
+	logger.Log.Info("RabbitMQ 连接已关闭")
+}
