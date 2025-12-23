@@ -191,28 +191,27 @@
 | **API 文档** | Swagger/OpenAPI | `docs/`, `/swagger/*` 路由 | ✅ 100% |
 | **容器编排** | K8s 基础部署文件 | `deploy/k8s/` | ⚠️ 50% |
 | **跨域处理** | CORS 中间件 | `internal/middleware/cors.go` | ✅ 100% |
+| **API 网关** | 统一入口、路由、限流 | `services/gateway/` | ✅ 100% |
+| **服务注册发现** | Consul | `pkg/consul/` | ✅ 100% |
+| **配置中心** | Consul KV | `pkg/config/` | ✅ 100% |
+| **熔断降级** | gobreaker | `pkg/breaker/` | ✅ 100% |
+| **分布式锁** | Redis + Lua | `pkg/distlock/` | ✅ 100% |
+| **延迟队列** | Redis ZSET | `pkg/delayqueue/` | ✅ 100% |
+| **监控告警** | Prometheus | `pkg/metrics/` | ✅ 100% |
+| **优雅停机** | 信号处理 | `cmd/main.go` | ✅ 100% |
+| **接口幂等** | Redis | `internal/middleware/idempotent.go` | ✅ 100% |
 
-### ❌ 缺失功能（简历加分项）
+### ❌ 缺失功能
 
 | 模块 | 缺失功能 | 重要程度 | 简历加分 |
 |------|----------|----------|----------|
-| **API 网关** | 统一入口、路由、限流 | ⭐⭐⭐⭐⭐ | 高 |
-| **服务注册发现** | Consul/Nacos/etcd | ⭐⭐⭐⭐⭐ | 高 |
-| **配置中心** | 动态配置、热更新 | ⭐⭐⭐⭐ | 高 |
-| **限流熔断** | Sentinel/go-resilience | ⭐⭐⭐⭐⭐ | 高 |
-| **分布式锁** | Redis/etcd 分布式锁 | ⭐⭐⭐⭐ | 高 |
-| **链路追踪** | Jaeger/Zipkin | ⭐⭐⭐⭐ | 高 |
-| **监控告警** | Prometheus + Grafana | ⭐⭐⭐⭐⭐ | 高 |
-| **延迟队列** | 订单超时自动取消 | ⭐⭐⭐⭐ | 中 |
+| **链路追踪** | Jaeger/Zipkin (仅实现 TraceID) | ⭐⭐⭐⭐ | 高 |
 | **分布式事务** | Saga/TCC/Seata | ⭐⭐⭐ | 高 |
 | **消息队列升级** | Kafka 替换 RabbitMQ | ⭐⭐⭐ | 中 |
 | **数据库读写分离** | MySQL 主从 | ⭐⭐⭐ | 中 |
 | **分库分表** | 应用层路由/ShardingSphere | ⭐⭐⭐ | 高 |
-| **单元测试** | 覆盖率 > 60% | ⭐⭐⭐⭐ | 高 |
 | **压测报告** | 性能基准数据 | ⭐⭐⭐⭐ | 高 |
 | **CI/CD** | GitHub Actions/Jenkins | ⭐⭐⭐⭐ | 高 |
-| **优雅停机** | 信号处理、连接排空 | ⭐⭐⭐ | 中 |
-| **接口幂等** | 幂等键设计 | ⭐⭐⭐⭐ | 中 |
 | **支付对接** | 支付宝/微信沙箱 | ⭐⭐⭐ | 中 |
 
 ---

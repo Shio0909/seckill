@@ -27,6 +27,20 @@
 // A4: 标签值太多导致时间序列爆炸。避免方法：
 //   - 不要用用户 ID、请求 ID 作为标签
 //   - 对路径参数化处理（/user/123 -> /user/:id）
+//
+// 面试高频问题（补充）：
+// Q: Prometheus 是 Pull 模式还是 Push 模式？
+// A: 默认是 Pull 模式（Server 主动去 Client 拉取）。
+//
+//	优点：Server 端控制采集频率，Client 端实现简单。
+//	缺点：Client 必须有可访问的 IP/Port。
+//	对于短作业（Short-lived Jobs），可以使用 PushGateway 配合 Push 模式。
+//
+// Q: 什么是 P99 延迟？
+// A: 表示 99% 的请求延迟都低于该值。
+//
+//	比平均值更能反映长尾效应（Long Tail）和用户体验。
+//	例如：平均延迟 100ms，但 P99 是 2s，说明有 1% 的用户体验很差。
 package metrics
 
 import (

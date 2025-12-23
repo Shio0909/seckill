@@ -32,6 +32,21 @@ import (
 // A: Consul - Go 语言，内置服务发现+健康检查，CP 模型
 //    etcd - Go 语言，K8s 底层存储，强一致性
 //    Nacos - Java 语言，阿里开源，支持 AP/CP 切换
+//
+// 面试高频问题（补充）：
+// Q: 什么是 CAP 定理？Consul 属于哪一种？
+// A: CAP 指 Consistency (一致性), Availability (可用性), Partition Tolerance (分区容错性)。
+//    分布式系统无法同时满足这三点。
+//    Consul 保证 CP (一致性 + 分区容错)，在网络分区时可能会牺牲可用性（无法写入）。
+//    Eureka 是 AP (可用性 + 分区容错)。
+//
+// Q: 服务注册时，IP 应该怎么获取？
+// A: 在容器化环境（Docker/K8s）中，不能简单使用 127.0.0.1。
+//    通常通过环境变量注入 Pod IP，或者通过网卡接口获取非 Loopback 的内网 IP。
+//
+// Q: Consul 的健康检查是怎么做的？
+// A: Consul 支持 Script, HTTP, TCP, TTL, Docker, gRPC 等多种检查方式。
+//    Agent 会定期执行检查，如果失败则标记服务为 Critical，不再返回给客户端。
 // ========================================================================
 
 // Config Consul 客户端配置
