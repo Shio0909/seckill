@@ -122,7 +122,8 @@ func TestLock_Mutex(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, ok, "第二个客户端应该能获取锁")
 
-	lock2.Unlock(ctx)
+	err = lock2.Unlock(ctx)
+	assert.NoError(t, err)
 }
 
 // 【重点学习】测试锁的安全释放
@@ -174,7 +175,10 @@ func TestLock_Retry(t *testing.T) {
 	// 启动一个 goroutine 在 200ms 后释放锁
 	go func() {
 		time.Sleep(200 * time.Millisecond)
-		lockA.Unlock(ctx)
+		if err := lockA.Unlock(ctx); err != nil {
+			// 在测试中记录错误
+			t.Logf("failed to unlock lockA: %v", err)
+		}
 	}()
 
 	// 客户端 B 尝试获取锁，设置重试
@@ -187,7 +191,8 @@ func TestLock_Retry(t *testing.T) {
 	assert.NoError(t, err, "应该在锁释放后获取成功")
 	assert.True(t, elapsed >= 200*time.Millisecond, "应该等待锁释放")
 
-	lockB.Unlock(ctx)
+	err = lockB.Unlock(ctx)
+	assert.NoError(t, err)
 }
 
 // 【面试高频】测试看门狗自动续期
@@ -216,7 +221,8 @@ func TestLock_WatchDog(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, lock.Value(), val)
 
-	lock.Unlock(ctx)
+	err = lock.Unlock(ctx)
+	assert.NoError(t, err)
 }
 
 // 【重点学习】并发测试：确保只有一个协程能获取锁
@@ -247,7 +253,9 @@ func TestLock_Concurrent(t *testing.T) {
 			if ok {
 				atomic.AddInt32(&successCount, 1)
 				time.Sleep(100 * time.Millisecond) // 模拟业务处理
-				lock.Unlock(ctx)
+				if err := lock.Unlock(ctx); err != nil {
+					t.Logf("failed to unlock: %v", err)
+				}
 			}
 		}()
 	}
@@ -299,5 +307,6 @@ func TestLock_ContextCancel(t *testing.T) {
 
 	assert.Error(t, err, "应该因为 context 超时而失败")
 
-	lock1.Unlock(ctx)
+	err = lock1.Unlock(ctx)
+	assert.NoError(t, err)
 }

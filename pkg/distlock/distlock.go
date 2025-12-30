@@ -46,6 +46,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 // 【重点学习】分布式锁相关错误定义
@@ -395,7 +396,14 @@ func WithLock(ctx context.Context, key string, fn func() error, opts ...LockOpti
 	if err != nil {
 		return fmt.Errorf("acquire lock failed: %w", err)
 	}
-	defer lock.Unlock(ctx)
+	defer func() {
+		if unlockErr := lock.Unlock(ctx); unlockErr != nil {
+			// 记录解锁失败，但不影响主逻辑
+			zap.L().Error("failed to unlock in WithLock",
+				zap.Error(unlockErr),
+				zap.String("key", key))
+		}
+	}()
 
 	return fn()
 }

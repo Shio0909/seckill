@@ -97,9 +97,15 @@ func TestDelayQueue_ExecutionOrder(t *testing.T) {
 	})
 
 	// 按不同延迟添加任务
-	queue.PushWithDelay(ctx, "task-3", "order-task", nil, 150*time.Millisecond)
-	queue.PushWithDelay(ctx, "task-1", "order-task", nil, 50*time.Millisecond)
-	queue.PushWithDelay(ctx, "task-2", "order-task", nil, 100*time.Millisecond)
+	if err := queue.PushWithDelay(ctx, "task-3", "order-task", nil, 150*time.Millisecond); err != nil {
+		t.Fatalf("failed to push task-3: %v", err)
+	}
+	if err := queue.PushWithDelay(ctx, "task-1", "order-task", nil, 50*time.Millisecond); err != nil {
+		t.Fatalf("failed to push task-1: %v", err)
+	}
+	if err := queue.PushWithDelay(ctx, "task-2", "order-task", nil, 100*time.Millisecond); err != nil {
+		t.Fatalf("failed to push task-2: %v", err)
+	}
 
 	queue.Start(ctx)
 	time.Sleep(300 * time.Millisecond)

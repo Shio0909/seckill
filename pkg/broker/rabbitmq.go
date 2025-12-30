@@ -373,7 +373,11 @@ func (b *RabbitMQBroker) consume(ctx context.Context, msgs <-chan amqp.Delivery,
 			}
 
 			// 【重点】手动确认消息
-			d.Ack(false)
+			if err := d.Ack(false); err != nil {
+				zap.L().Error("failed to ack message",
+					zap.Error(err),
+					zap.Uint64("delivery_tag", d.DeliveryTag))
+			}
 		}
 	}
 }

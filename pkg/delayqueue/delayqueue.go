@@ -49,6 +49,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/zap"
 )
 
 // 【重点学习】延迟队列相关错误定义
@@ -323,7 +324,12 @@ func (q *DelayQueue) executeTask(ctx context.Context, task *Task) {
 
 	// 重新入队，延迟后重试
 	task.ExecuteAt = time.Now().Add(task.RetryDelay)
-	q.Push(ctx, task)
+	if err := q.Push(ctx, task); err != nil {
+		zap.L().Error("failed to push task for retry",
+			zap.Error(err),
+			zap.String("task_id", task.ID),
+			zap.String("task_type", task.Type))
+	}
 }
 
 // moveToDeadLetter 移动到死信队列
