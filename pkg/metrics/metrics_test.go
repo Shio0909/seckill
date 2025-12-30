@@ -150,9 +150,3 @@ func TestMQMetrics(t *testing.T) {
 	assert.Equal(t, float64(1), consumedSuccess)
 	assert.Equal(t, float64(1), consumedError)
 }
-
-// 清理测试中创建的指标（避免测试间干扰）
-func resetMetrics() {
-	// 在实际测试中，可能需要重新创建 registry
-	// 这里简化处理
-}

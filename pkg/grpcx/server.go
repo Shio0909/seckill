@@ -165,7 +165,9 @@ func (s *Server) Stop() {
 			localIP = "127.0.0.1"
 		}
 		serviceID := consul.GenerateServiceID(s.config.ServiceName, localIP, s.config.Port)
-		s.consulClient.Deregister(serviceID)
+		if err := s.consulClient.Deregister(serviceID); err != nil {
+			fmt.Printf("[gRPC] 从 Consul 注销失败: %v\n", err)
+		}
 	}
 
 	// 优雅关闭 gRPC 服务

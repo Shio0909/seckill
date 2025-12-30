@@ -23,11 +23,6 @@ func getJWTSecret() []byte {
 	return []byte(config.Get().JWT.Secret)
 }
 
-// getJWTExpireTime 从配置获取 JWT 过期时间
-func getJWTExpireTime() time.Duration {
-	return config.Get().JWT.ExpireTime
-}
-
 // HashPassword hash密码加密
 func HashPassword(password string) (string, error) {
 	bytes, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

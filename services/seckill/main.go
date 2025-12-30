@@ -46,7 +46,9 @@ func main() {
 
 	// 2. 初始化日志
 	logger.Initlogger()
-	defer logger.Log.Sync()
+	defer func() {
+		_ = logger.Log.Sync()
+	}()
 
 	// 3. 初始化数据库（秒杀服务可能需要查询商品信息）
 	database.InitMySQL()

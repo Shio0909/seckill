@@ -456,7 +456,10 @@ func (h *GatewayHandler) PayOrder(c *gin.Context) {
 	var req struct {
 		PaymentMethod string `json:"payment_method"`
 	}
-	c.ShouldBindJSON(&req)
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"code": 400, "message": "参数错误"})
+		return
+	}
 
 	conn, err := h.clientManager.GetConnection("order-service")
 	if err != nil {

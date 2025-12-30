@@ -81,7 +81,9 @@ func main() {
 
 	// 2. 初始化日志
 	logger.Initlogger()
-	defer logger.Log.Sync()
+	defer func() {
+		_ = logger.Log.Sync()
+	}()
 
 	// 3. 初始化 Consul 客户端（用于服务发现）
 	cfg := config.Get()

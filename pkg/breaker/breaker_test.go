@@ -94,6 +94,7 @@ func TestCircuitBreakerHalfOpenToOpen(t *testing.T) {
 	for i := 0; i < 2; i++ {
 		if err := cb.Allow(); err != nil {
 			// 在测试中忽略 Allow 错误，继续触发 Failure
+			t.Logf("熔断器已开启，Allow 拒绝: %v", err)
 		}
 		cb.Failure()
 	}
@@ -108,6 +109,7 @@ func TestCircuitBreakerHalfOpenToOpen(t *testing.T) {
 	// 在 Half-Open 状态下失败
 	if err := cb.Allow(); err != nil {
 		// 在测试中忽略 Allow 错误
+		t.Logf("Half-Open 状态 Allow 结果: %v", err)
 	}
 	cb.Failure()
 

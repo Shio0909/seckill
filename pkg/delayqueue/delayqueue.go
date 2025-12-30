@@ -346,7 +346,10 @@ func (q *DelayQueue) moveToDeadLetter(ctx context.Context, task *Task, reason st
 		Time:   time.Now().Format(time.RFC3339),
 	}
 
-	data, _ := json.Marshal(deadTask)
+	data, err := json.Marshal(deadTask)
+	if err != nil {
+		return // 序列化失败，忽略此任务
+	}
 	q.client.LPush(ctx, q.deadLetterKey, string(data))
 }
 

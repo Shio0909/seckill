@@ -121,10 +121,13 @@ func (m *ClientManager) dial(target string, config *ClientConfig) (*grpc.ClientC
 		timeout = 5 * time.Second
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), timeout)
-	defer cancel()
+	// 添加超时选项
+	opts = append(opts, grpc.WithConnectParams(grpc.ConnectParams{
+		MinConnectTimeout: timeout,
+	}))
 
-	conn, err := grpc.DialContext(ctx, target, opts...)
+	// 使用 NewClient 替代已弃用的 DialContext
+	conn, err := grpc.NewClient(target, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("连接 %s 失败: %w", target, err)
 	}

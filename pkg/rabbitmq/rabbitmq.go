@@ -2,6 +2,7 @@ package rabbitmq
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"seckill/pkg/config"
 	"seckill/pkg/logger"
@@ -65,9 +66,12 @@ func SendSeckillMessage(uid int64, pid int64) error {
 		ProductID: pid,
 	}
 	//转成JSON格式
-	body, _ := json.Marshal(msg)
+	body, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("序列化消息失败: %w", err)
+	}
 	//2、发送消息到队列
-	err := Channel.Publish(
+	err = Channel.Publish(
 		"",
 		QueueName,
 		false,

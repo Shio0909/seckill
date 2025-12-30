@@ -48,13 +48,12 @@ import (
 
 // RabbitMQBroker RabbitMQ 消息代理实现
 type RabbitMQBroker struct {
-	config     *RabbitMQConfig
-	conn       *amqp.Connection
-	channel    *amqp.Channel
-	mu         sync.RWMutex
-	closed     bool
-	consumers  map[string]<-chan amqp.Delivery
-	cancelFunc context.CancelFunc
+	config    *RabbitMQConfig
+	conn      *amqp.Connection
+	channel   *amqp.Channel
+	mu        sync.RWMutex
+	closed    bool
+	consumers map[string]<-chan amqp.Delivery
 }
 
 // NewRabbitMQBroker 创建 RabbitMQ 代理
