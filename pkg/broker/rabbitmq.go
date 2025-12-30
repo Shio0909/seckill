@@ -8,6 +8,7 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"go.uber.org/zap"
 )
 
 // ========================================================================
@@ -118,6 +119,9 @@ func (b *RabbitMQBroker) connect() error {
 	if err := b.channel.Confirm(false); err != nil {
 		return fmt.Errorf("开启 Confirm 模式失败: %w", err)
 	}
+
+	// 监听连接关闭事件，自动重连
+	b.notifyClose()
 
 	return nil
 }
@@ -318,7 +322,7 @@ func (b *RabbitMQBroker) Subscribe(ctx context.Context, topic string, group stri
 }
 
 // consume 消费消息
-func (b *RabbitMQBroker) consume(ctx context.Context, msgs <-chan amqp.Delivery, handler MessageHandler, topic string) {
+func (b *RabbitMQBroker) consume(ctx context.Context, msgs <-chan amqp.Delivery, handler MessageHandler, _ string) {
 	for {
 		select {
 		case <-ctx.Done():
@@ -332,7 +336,12 @@ func (b *RabbitMQBroker) consume(ctx context.Context, msgs <-chan amqp.Delivery,
 			var msg Message
 			if err := json.Unmarshal(d.Body, &msg); err != nil {
 				// 解析失败，拒绝消息（不重试）
-				d.Nack(false, false)
+				zap.L().Error("failed to unmarshal message",
+					zap.Error(err),
+					zap.ByteString("body", d.Body))
+				if nackErr := d.Nack(false, false); nackErr != nil {
+					zap.L().Error("failed to nack message after unmarshal error", zap.Error(nackErr))
+				}
 				continue
 			}
 
@@ -342,12 +351,23 @@ func (b *RabbitMQBroker) consume(ctx context.Context, msgs <-chan amqp.Delivery,
 			if err != nil {
 				// 处理失败，根据重试次数决定是否重试
 				msg.Attempts++
+				zap.L().Error("failed to handle message",
+					zap.Error(err),
+					zap.Int("attempts", msg.Attempts),
+					zap.String("message_id", msg.ID))
 				if msg.Attempts < 3 {
 					// 重新入队重试
-					d.Nack(false, true)
+					if nackErr := d.Nack(false, true); nackErr != nil {
+						zap.L().Error("failed to nack message for retry", zap.Error(nackErr))
+					}
 				} else {
 					// 超过重试次数，拒绝消息（进入死信队列）
-					d.Nack(false, false)
+					zap.L().Warn("message exceeded max retries, sending to DLQ",
+						zap.String("message_id", msg.ID),
+						zap.Int("attempts", msg.Attempts))
+					if nackErr := d.Nack(false, false); nackErr != nil {
+						zap.L().Error("failed to nack message to DLQ", zap.Error(nackErr))
+					}
 				}
 				continue
 			}

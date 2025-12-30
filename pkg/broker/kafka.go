@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/segmentio/kafka-go"
+	"go.uber.org/zap"
 )
 
 // ========================================================================
@@ -248,7 +249,12 @@ func (b *KafkaBroker) consume(ctx context.Context, reader *kafka.Reader, handler
 			var msg Message
 			if err := json.Unmarshal(kafkaMsg.Value, &msg); err != nil {
 				// 解析失败，提交 offset（避免消息重复消费）
-				reader.CommitMessages(ctx, kafkaMsg)
+				zap.L().Error("failed to unmarshal kafka message",
+					zap.Error(err),
+					zap.ByteString("value", kafkaMsg.Value))
+				if commitErr := reader.CommitMessages(ctx, kafkaMsg); commitErr != nil {
+					zap.L().Error("failed to commit offset after unmarshal error", zap.Error(commitErr))
+				}
 				continue
 			}
 
@@ -265,14 +271,30 @@ func (b *KafkaBroker) consume(ctx context.Context, reader *kafka.Reader, handler
 			if err != nil {
 				// 处理失败，根据重试策略决定
 				msg.Attempts++
+				zap.L().Error("failed to handle kafka message",
+					zap.Error(err),
+					zap.Int("attempts", msg.Attempts),
+					zap.String("message_id", msg.ID))
 				if msg.Attempts < 3 {
 					// 重试：发送到重试主题
 					retryTopic := topic + ".retry"
-					b.Publish(ctx, retryTopic, &msg)
+					if publishErr := b.Publish(ctx, retryTopic, &msg); publishErr != nil {
+						zap.L().Error("failed to publish message to retry topic",
+							zap.Error(publishErr),
+							zap.String("retry_topic", retryTopic))
+					}
 				} else {
 					// 死信：发送到死信主题
 					dlqTopic := topic + ".dlq"
-					b.Publish(ctx, dlqTopic, &msg)
+					zap.L().Warn("message exceeded max retries, sending to DLQ",
+						zap.String("message_id", msg.ID),
+						zap.Int("attempts", msg.Attempts),
+						zap.String("dlq_topic", dlqTopic))
+					if publishErr := b.Publish(ctx, dlqTopic, &msg); publishErr != nil {
+						zap.L().Error("failed to publish message to DLQ",
+							zap.Error(publishErr),
+							zap.String("dlq_topic", dlqTopic))
+					}
 				}
 			}
 

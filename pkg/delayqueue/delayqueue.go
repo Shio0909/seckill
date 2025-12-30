@@ -1,4 +1,5 @@
 // Package delayqueue 提供基于 Redis ZSET 的延迟队列实现
+// 触发机制：拉模式
 //
 // 【重点学习】延迟队列的核心原理
 // 使用 Redis 有序集合（ZSET）实现延迟队列：
@@ -262,7 +263,7 @@ func (q *DelayQueue) consume(ctx context.Context, workerID int) {
 
 // processTasks 处理到期任务
 // 【重点学习】批量处理提升效率
-func (q *DelayQueue) processTasks(ctx context.Context, workerID int) {
+func (q *DelayQueue) processTasks(ctx context.Context, _ int) {
 	now := time.Now().UnixMilli()
 
 	// 原子性获取到期任务

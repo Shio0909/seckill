@@ -92,7 +92,9 @@ func TestCircuitBreakerHalfOpenToOpen(t *testing.T) {
 
 	// 触发熔断
 	for i := 0; i < 2; i++ {
-		cb.Allow()
+		if err := cb.Allow(); err != nil {
+			// 在测试中忽略 Allow 错误，继续触发 Failure
+		}
 		cb.Failure()
 	}
 
@@ -104,7 +106,9 @@ func TestCircuitBreakerHalfOpenToOpen(t *testing.T) {
 	time.Sleep(time.Millisecond * 60)
 
 	// 在 Half-Open 状态下失败
-	cb.Allow()
+	if err := cb.Allow(); err != nil {
+		// 在测试中忽略 Allow 错误
+	}
 	cb.Failure()
 
 	// 应该回退到 Open 状态
@@ -184,9 +188,11 @@ func TestCircuitBreakerExecute(t *testing.T) {
 
 	// 触发熔断
 	for i := 0; i < 2; i++ {
-		cb.Execute(func() (interface{}, error) {
+		if _, err := cb.Execute(func() (interface{}, error) {
 			return nil, ErrCircuitOpen // 返回任意错误
-		})
+		}); err != nil {
+			// 在测试中忽略执行错误
+		}
 	}
 
 	// 熔断状态下应该直接返回错误

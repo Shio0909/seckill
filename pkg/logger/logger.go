@@ -34,5 +34,11 @@ func Initlogger() {
 
 // 刷新日志缓冲区，在main函数退出前调用
 func Sync() {
-	Log.Sync()
+	if err := Log.Sync(); err != nil {
+		// Sync 可能会在标准输出/错误输出不支持同步时失败
+		// 这通常发生在终端重定向的情况下
+		// 由于这是程序退出时调用，我们只能忽略这个错误
+		// 参考: https://github.com/uber-go/zap/issues/328
+		_ = err
+	}
 }
