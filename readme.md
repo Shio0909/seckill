@@ -200,19 +200,20 @@
 | **监控告警** | Prometheus | `pkg/metrics/` | ✅ 100% |
 | **优雅停机** | 信号处理 | `cmd/main.go` | ✅ 100% |
 | **接口幂等** | Redis | `internal/middleware/idempotent.go` | ✅ 100% |
+| **链路追踪** | OpenTelemetry + Jaeger | `pkg/tracing/` | ✅ 100% |
+| **消息队列抽象** | Broker 接口（RabbitMQ/Kafka） | `pkg/broker/` | ✅ 100% |
+| **压测脚本** | K6 压测 | `scripts/k6/` | ✅ 100% |
+| **CI/CD** | GitHub Actions | `.github/workflows/` | ✅ 100% |
 
-### ❌ 缺失功能
+### ❌ 待完善功能
 
 | 模块 | 缺失功能 | 重要程度 | 简历加分 |
 |------|----------|----------|----------|
-| **链路追踪** | Jaeger/Zipkin (仅实现 TraceID) | ⭐⭐⭐⭐ | 高 |
 | **分布式事务** | Saga/TCC/Seata | ⭐⭐⭐ | 高 |
-| **消息队列升级** | Kafka 替换 RabbitMQ | ⭐⭐⭐ | 中 |
 | **数据库读写分离** | MySQL 主从 | ⭐⭐⭐ | 中 |
 | **分库分表** | 应用层路由/ShardingSphere | ⭐⭐⭐ | 高 |
-| **压测报告** | 性能基准数据 | ⭐⭐⭐⭐ | 高 |
-| **CI/CD** | GitHub Actions/Jenkins | ⭐⭐⭐⭐ | 高 |
 | **支付对接** | 支付宝/微信沙箱 | ⭐⭐⭐ | 中 |
+| **ELK 日志** | Elasticsearch 日志收集 | ⭐⭐⭐ | 中 |
 
 ---
 
@@ -633,7 +634,7 @@ message ValidateTokenResponse {
 
 ---
 
-### 📅 阶段三：高级特性（2-3 周）🚧 进行中
+### 📅 阶段三：高级特性（2-3 周）✅ 已完成
 
 **目标**：引入高级分布式组件，提升系统可靠性和可观测性
 
@@ -641,16 +642,31 @@ message ValidateTokenResponse {
 
 | 序号 | 任务 | 优先级 | 状态 | 实现文件 |
 |------|------|--------|------|----------|
-| 3.1 | Kafka 消息队列迁移 | P0 | ⏳ 待做 | - |
+| 3.1 | 消息队列抽象层（支持 Kafka/RabbitMQ） | P0 | ✅ 完成 | `pkg/broker/` |
 | 3.2 | 分布式锁实现（Redis） | P0 | ✅ 完成 | `pkg/distlock/distlock.go` |
 | 3.3 | 延迟队列（订单超时取消） | P0 | ✅ 完成 | `pkg/delayqueue/delayqueue.go` |
 | 3.4 | Prometheus + Grafana 监控 | P0 | ✅ 完成 | `pkg/metrics/metrics.go` |
-| 3.5 | ELK 日志收集 | P1 | ⏳ 待做 | - |
-| 3.6 | 分布式事务（Saga 模式） | P1 | ⏳ 待做 | - |
-| 3.7 | 支付服务（支付宝沙箱） | P2 | ⏳ 待做 | - |
-| 3.8 | 消息可靠投递（Outbox 模式） | P1 | ⏳ 待做 | - |
+| 3.5 | 链路追踪（OpenTelemetry + Jaeger） | P0 | ✅ 完成 | `pkg/tracing/`, `pkg/grpcx/tracing.go` |
+| 3.6 | K6 压测脚本 | P0 | ✅ 完成 | `scripts/k6/` |
+| 3.7 | CI/CD Pipeline（GitHub Actions） | P0 | ✅ 完成 | `.github/workflows/ci.yml` |
+| 3.8 | 分布式事务（Saga 模式） | P1 | ⏳ 待做 | - |
+| 3.9 | ELK 日志收集 | P1 | ⏳ 待做 | - |
+| 3.10 | 支付服务（支付宝沙箱） | P2 | ⏳ 待做 | - |
 
 #### 已完成组件详解
+
+##### 3.1 消息队列抽象层（pkg/broker）
+
+**功能特性**：
+- ✅ 统一的 MessageBroker 接口
+- ✅ RabbitMQ 实现（支持延迟队列、死信队列）
+- ✅ Kafka 实现（支持分区、消费者组）
+- ✅ 消息可靠性保证（确认、重试机制）
+
+**面试考点**：
+1. 为什么要对消息队列做抽象？（依赖倒置、便于测试和迁移）
+2. RabbitMQ 和 Kafka 的区别？
+3. 如何保证消息不丢失？
 
 ##### 3.2 分布式锁（pkg/distlock）
 
@@ -1450,7 +1466,242 @@ seckill/
 | `pkg/consul/` | **服务发现**，动态服务注册 | ⭐⭐⭐⭐⭐ |
 | `pkg/grpcx/` | **gRPC 封装**，连接池与拦截器 | ⭐⭐⭐⭐ |
 | `pkg/redis/scripts.go` | **Lua 脚本**，原子库存扣减 | ⭐⭐⭐⭐⭐ |
+| `pkg/tracing/` | **链路追踪**，OpenTelemetry + Jaeger | ⭐⭐⭐⭐⭐ |
+| `pkg/broker/` | **消息队列抽象**，支持 RabbitMQ/Kafka | ⭐⭐⭐⭐ |
 | `internal/` | 单体架构遗留代码，逐步废弃 | ⭐⭐ |
+
+---
+
+## 🔭 新增功能详细说明
+
+### 1. 链路追踪（OpenTelemetry + Jaeger）
+
+**功能位置**：`pkg/tracing/tracing.go`、`pkg/grpcx/tracing.go`
+
+**核心功能**：
+- ✅ 集成 OpenTelemetry SDK
+- ✅ 支持 Jaeger 后端（OTLP 协议）
+- ✅ gRPC 客户端/服务端拦截器
+- ✅ 自定义采样策略
+- ✅ TraceID 跨服务传播
+
+**使用示例**：
+
+```go
+package main
+
+import (
+    "context"
+    "seckill/pkg/tracing"
+)
+
+func main() {
+    // 初始化链路追踪
+    tp, err := tracing.InitTracer(&tracing.Config{
+        ServiceName:    "user-service",
+        JaegerEndpoint: "localhost:4317", // Jaeger OTLP 端点
+        SampleRate:     1.0,              // 开发环境全量采样
+        Enabled:        true,
+    })
+    if err != nil {
+        panic(err)
+    }
+    defer tp.Shutdown(context.Background())
+
+    // 在业务代码中创建 Span
+    ctx := context.Background()
+    ctx, span := tracing.StartSpan(ctx, "processOrder")
+    defer span.End()
+
+    // 添加属性
+    tracing.AddSpanAttributes(ctx,
+        tracing.AttrUserID.Int64(12345),
+        tracing.AttrOrderID.String("order-001"),
+    )
+
+    // 记录事件
+    tracing.AddSpanEvent(ctx, "库存扣减成功")
+
+    // 记录错误
+    if err != nil {
+        tracing.RecordSpanError(ctx, err)
+    }
+}
+```
+
+**gRPC 集成**：
+
+```go
+import "seckill/pkg/grpcx"
+
+// 服务端使用追踪拦截器
+server := grpc.NewServer(grpcx.WithTracingServerInterceptors()...)
+
+// 客户端使用追踪拦截器
+conn, _ := grpc.Dial(target, grpcx.WithTracingClientInterceptors()...)
+```
+
+**启动 Jaeger**：
+
+```bash
+# Docker 启动 Jaeger
+docker run -d --name jaeger \
+  -p 16686:16686 \
+  -p 4317:4317 \
+  jaegertracing/all-in-one:latest
+
+# 访问 Jaeger UI
+open http://localhost:16686
+```
+
+---
+
+### 2. 消息队列抽象层（Message Broker）
+
+**功能位置**：`pkg/broker/`
+
+**核心功能**：
+- ✅ 统一的 `MessageBroker` 接口
+- ✅ RabbitMQ 实现（支持延迟队列）
+- ✅ Kafka 实现（支持分区和消费者组）
+- ✅ 消息可靠性保证（确认、重试、死信）
+
+**使用示例**：
+
+```go
+package main
+
+import (
+    "context"
+    "seckill/pkg/broker"
+)
+
+func main() {
+    // 创建 RabbitMQ Broker
+    rmqBroker, _ := broker.NewRabbitMQBroker(&broker.RabbitMQConfig{
+        URL:          "amqp://guest:guest@localhost:5672/",
+        Exchange:     "seckill",
+        ExchangeType: "topic",
+    })
+    defer rmqBroker.Close()
+
+    ctx := context.Background()
+
+    // 发布消息
+    rmqBroker.Publish(ctx, "order.created", &broker.Message{
+        ID:   "msg-001",
+        Body: []byte(`{"order_id": "12345"}`),
+    })
+
+    // 发布延迟消息（30分钟后处理）
+    rmqBroker.PublishWithDelay(ctx, "order.timeout", &broker.Message{
+        ID:   "msg-002",
+        Body: []byte(`{"order_id": "12345"}`),
+    }, 30*time.Minute)
+
+    // 订阅消息
+    rmqBroker.Subscribe(ctx, "order.created", "order-consumer", func(ctx context.Context, msg *broker.Message) error {
+        fmt.Printf("收到消息: %s\n", string(msg.Body))
+        return nil // 返回 nil 表示处理成功
+    })
+
+    // 切换到 Kafka
+    kafkaBroker, _ := broker.NewKafkaBroker(&broker.KafkaConfig{
+        Brokers: []string{"localhost:9092"},
+        GroupID: "seckill-consumer",
+    })
+    // 使用方式完全一致！
+}
+```
+
+---
+
+### 3. K6 压测脚本
+
+**功能位置**：`scripts/k6/`
+
+**脚本说明**：
+- `seckill_test.js` - 秒杀场景压测
+- `api_test.js` - API 全链路压测
+
+**运行压测**：
+
+```bash
+# 安装 k6
+# Windows
+choco install k6
+
+# Mac
+brew install k6
+
+# 运行秒杀压测
+k6 run scripts/k6/seckill_test.js
+
+# 带参数运行
+k6 run -e BASE_URL=http://localhost:8080 -e PRODUCT_ID=1 scripts/k6/seckill_test.js
+
+# 运行全链路测试
+k6 run scripts/k6/api_test.js
+
+# 输出 JSON 报告
+k6 run --out json=results.json scripts/k6/seckill_test.js
+```
+
+**压测场景**：
+
+| 场景 | 说明 | VU | 持续时间 |
+|------|------|-----|----------|
+| 阶梯加压 | 逐步增加并发找瓶颈 | 100→500→1000 | 5分钟 |
+| 峰值测试 | 模拟秒杀瞬时流量 | 1000 RPS | 30秒 |
+| 稳定性测试 | 中等负载长时间运行 | 500 | 30分钟 |
+
+---
+
+### 4. CI/CD Pipeline（GitHub Actions）
+
+**功能位置**：`.github/workflows/ci.yml`
+
+**Pipeline 阶段**：
+
+```
+代码提交
+    │
+    ▼
+┌─────────────┐
+│ 1. Lint     │  代码检查、格式化验证
+└─────────────┘
+    │
+    ▼
+┌─────────────┐
+│ 2. Test     │  单元测试、覆盖率上传
+└─────────────┘
+    │
+    ▼
+┌─────────────┐
+│ 3. Build    │  多服务并行构建
+└─────────────┘
+    │
+    ▼ (仅 main 分支)
+┌─────────────┐
+│ 4. Docker   │  构建并推送镜像到 GHCR
+└─────────────┘
+    │
+    ▼ (需审批)
+┌─────────────┐
+│ 5. Deploy   │  部署到 Kubernetes
+└─────────────┘
+    │
+    ▼
+┌─────────────┐
+│ 6. E2E Test │  集成测试验证
+└─────────────┘
+```
+
+**配置 Secrets**：
+
+在 GitHub 仓库设置中添加以下 Secrets：
+- `KUBE_CONFIG` - Kubernetes 配置（Base64 编码）
+- `API_URL` - 部署后的 API 地址
 
 ---
 
