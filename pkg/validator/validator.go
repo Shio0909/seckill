@@ -41,7 +41,9 @@ func InitValidator() {
 		zhT := zh.New()
 		uni := ut.New(zhT, zhT)
 		Trans, _ = uni.GetTranslator("zh")
-		zhTranslations.RegisterDefaultTranslations(v, Trans)
+		if err := zhTranslations.RegisterDefaultTranslations(v, Trans); err != nil {
+			panic("注册中文翻译失败: " + err.Error())
+		}
 
 		// ====================================================================
 		// 【重点学习】自定义字段名（用 json tag 替代字段名）
@@ -63,8 +65,12 @@ func InitValidator() {
 		// 内置规则不够用时，可以注册自定义校验器
 		// 如：手机号格式、身份证格式、密码强度等
 		// ====================================================================
-		v.RegisterValidation("mobile", validateMobile)
-		v.RegisterValidation("password_strength", validatePasswordStrength)
+		if err := v.RegisterValidation("mobile", validateMobile); err != nil {
+			panic("注册手机号校验器失败: " + err.Error())
+		}
+		if err := v.RegisterValidation("password_strength", validatePasswordStrength); err != nil {
+			panic("注册密码强度校验器失败: " + err.Error())
+		}
 	}
 }
 

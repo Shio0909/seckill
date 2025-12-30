@@ -146,7 +146,9 @@ func TestDelayQueue_Retry(t *testing.T) {
 	task := NewTask("retry-1", "retry-task", nil, 50*time.Millisecond)
 	task.MaxRetry = 3
 	task.RetryDelay = 50 * time.Millisecond
-	queue.Push(ctx, task)
+	if err := queue.Push(ctx, task); err != nil {
+		t.Fatalf("failed to push task: %v", err)
+	}
 
 	queue.Start(ctx)
 	time.Sleep(500 * time.Millisecond)
@@ -176,7 +178,9 @@ func TestDelayQueue_DeadLetter(t *testing.T) {
 	task := NewTask("fail-1", "fail-task", nil, 10*time.Millisecond)
 	task.MaxRetry = 1
 	task.RetryDelay = 10 * time.Millisecond
-	queue.Push(ctx, task)
+	if err := queue.Push(ctx, task); err != nil {
+		t.Fatalf("failed to push task: %v", err)
+	}
 
 	queue.Start(ctx)
 	time.Sleep(200 * time.Millisecond)
@@ -200,7 +204,9 @@ func TestDelayQueue_UnknownTaskType(t *testing.T) {
 	)
 
 	// 不注册任何处理器，直接添加任务
-	queue.PushWithDelay(ctx, "unknown-1", "unknown-type", nil, 10*time.Millisecond)
+	if err := queue.PushWithDelay(ctx, "unknown-1", "unknown-type", nil, 10*time.Millisecond); err != nil {
+		t.Fatalf("failed to push task: %v", err)
+	}
 
 	queue.Start(ctx)
 	time.Sleep(100 * time.Millisecond)
@@ -222,7 +228,9 @@ func TestDelayQueue_Len(t *testing.T) {
 
 	// 添加多个任务
 	for i := 0; i < 5; i++ {
-		queue.PushWithDelay(ctx, fmt.Sprintf("task-%d", i), "test", nil, time.Hour)
+		if err := queue.PushWithDelay(ctx, fmt.Sprintf("task-%d", i), "test", nil, time.Hour); err != nil {
+			t.Fatalf("failed to push task-%d: %v", i, err)
+		}
 	}
 
 	// 验证队列长度
@@ -303,16 +311,20 @@ func TestOrderTimeoutQueue_RemoveOnPayment(t *testing.T) {
 	})
 
 	// 添加订单
-	queue.AddOrder(ctx, OrderTimeoutPayload{
+	if err := queue.AddOrder(ctx, OrderTimeoutPayload{
 		OrderID:   "order-002",
 		UserID:    1,
 		ProductID: 100,
 		Quantity:  1,
-	})
+	}); err != nil {
+		t.Fatalf("failed to add order: %v", err)
+	}
 
 	// 模拟支付成功，移除订单
 	time.Sleep(50 * time.Millisecond)
-	queue.RemoveOrder(ctx, "order-002")
+	if err := queue.RemoveOrder(ctx, "order-002"); err != nil {
+		t.Fatalf("failed to remove order: %v", err)
+	}
 
 	// 启动消费者
 	queue.Start(ctx)

@@ -40,7 +40,11 @@ func StartConsumer() {
 		for d := range msgs {
 			//4、解析json
 			var msg rabbitmq.OrderMessage
-			json.Unmarshal(d.Body, &msg)
+			if err := json.Unmarshal(d.Body, &msg); err != nil {
+				logger.Log.Error("消息解析失败", zap.Error(err), zap.ByteString("body", d.Body))
+				_ = d.Ack(false) // 解析失败的消息直接确认，避免重复消费
+				continue
+			}
 			logger.Log.Info("收到消息", zap.Int64("uid", msg.UserID), zap.Int64("pid", msg.ProductID))
 			//5、处理下单逻辑(写入mysql)
 			err := createOrderInDB(msg.UserID, msg.ProductID)
@@ -50,7 +54,9 @@ func StartConsumer() {
 				//d.Reject(true) //退回队列重试
 			} else {
 				//处理成功 发送ack
-				d.Ack(false)
+				if err := d.Ack(false); err != nil {
+					logger.Log.Error("ACK确认失败", zap.Error(err))
+				}
 			}
 		}
 	}()
