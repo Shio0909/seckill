@@ -1,0 +1,104 @@
+# 推荐服务配置模板
+# 复制为 config.yaml 并修改实际值
+
+# gRPC服务配置
+grpc:
+  port: 50052
+  max_workers: 10
+
+# Redis配置
+redis:
+  host: localhost
+  port: 6379
+  password: ""
+  db: 0
+  pool_size: 20
+
+# Milvus配置
+milvus:
+  host: localhost
+  port: 19530
+  collection_name: event_embeddings
+  dimension: 128
+
+# 召回层配置
+recall:
+  # ItemCF配置
+  item_cf:
+    enabled: true
+    weight: 0.30
+    top_k: 50
+  
+  # UserCF配置
+  user_cf:
+    enabled: true
+    weight: 0.20
+    top_k: 50
+  
+  # 向量召回配置
+  vector:
+    enabled: true
+    weight: 0.25
+    top_k: 50
+  
+  # 热门召回配置
+  hot:
+    enabled: true
+    weight: 0.15
+    top_k: 100
+  
+  # 标签召回配置
+  tag:
+    enabled: true
+    weight: 0.10
+    top_k: 50
+
+# 排序层配置
+ranking:
+  model_type: lightgbm  # lightgbm / deepfm / both
+  model_path: src/model/models/lgb_ctr_v1.pkl
+  
+  # 特征配置
+  features:
+    user_features: 8
+    item_features: 6
+    cross_features: 2
+
+# 重排配置
+rerank:
+  # MMR多样性配置
+  diversity:
+    enabled: true
+    lambda: 0.7  # 相关性权重
+  
+  # 业务规则配置
+  filter:
+    # 冷却期(小时): 用户购买过的活动多久内不再推荐
+    cooldown_hours: 168  # 7天
+
+# AB测试配置
+ab_test:
+  enabled: true
+  experiments:
+    - name: recall_strategy
+      groups:
+        - id: control
+          weight: 50
+          params:
+            recall_sources: ["item_cf", "hot"]
+        - id: treatment
+          weight: 50
+          params:
+            recall_sources: ["item_cf", "vector", "hot"]
+
+# 日志配置
+logging:
+  level: INFO
+  format: json
+  file: logs/recommend.log
+
+# 监控配置
+metrics:
+  enabled: true
+  port: 9090
+  path: /metrics

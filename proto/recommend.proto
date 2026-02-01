@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package recommend;
+
+option go_package = "seckill/proto/recommend";
+
+// 推荐服务实现 召回 → 排序 → 重排 的完整 Pipeline：
+// 1. 多路召回（热门、ItemCF、历史、向量）
+// 2. CTR 排序（LightGBM 模型）
+// 3. 重排策略（去重、多样性、时效性）
+
+service RecommendService {
+    // 获取推荐列表
+    rpc GetRecommendations(GetRecommendationsRequest) returns (GetRecommendationsResponse);
+    
+    // 获取相似活动
+    rpc GetSimilarEvents(GetSimilarEventsRequest) returns (GetSimilarEventsResponse);
+    
+    // 获取热门活动
+    rpc GetHotEvents(GetHotEventsRequest) returns (GetHotEventsResponse);
+    
+    // 获取用户可能喜欢
+    rpc GetUserMightLike(GetUserMightLikeRequest) returns (GetUserMightLikeResponse);
+}
+
+message GetRecommendationsRequest {
+    uint64 user_id = 1;
+    string scene = 2;           // 场景：home, detail, search, cart
+    int32 page = 3;
+    int32 page_size = 4;
+    string city = 5;            // 可选：按城市过滤
+    string category = 6;        // 可选：按分类过滤
+}
+
+message GetRecommendationsResponse {
+    int32 code = 1;
+    string message = 2;
+    repeated RecommendItem items = 3;
+    string trace_id = 4;        // 追踪ID，用于埋点回传
+}
+
+message RecommendItem {
+    uint64 event_id = 1;
+    string title = 2;
+    string category = 3;
+    string city = 4;
+    string venue = 5;
+    string image_url = 6;
+    double min_price = 7;
+    double max_price = 8;
+    int64 start_time = 9;
+    int32 status = 10;
+    repeated string tags = 11;
+    repeated string artists = 12;
+    double score = 13;          // 推荐分数
+    string recall_source = 14;  // 召回来源：hot, itemcf, history
+    int32 position = 15;        // 展示位置
+}
+
+message GetSimilarEventsRequest {
+    uint64 event_id = 1;
+    int32 limit = 2;
+}
+
+message GetSimilarEventsResponse {
+    int32 code = 1;
+    string message = 2;
+    repeated RecommendItem items = 3;
+}
+
+message GetHotEventsRequest {
+    string city = 1;            // 可选
+    string category = 2;        // 可选
+    int32 limit = 3;
+}
+
+message GetHotEventsResponse {
+    int32 code = 1;
+    string message = 2;
+    repeated RecommendItem items = 3;
+}
+
+message GetUserMightLikeRequest {
+    uint64 user_id = 1;
+    int32 limit = 2;
+}
+
+message GetUserMightLikeResponse {
+    int32 code = 1;
+    string message = 2;
+    repeated RecommendItem items = 3;
+}

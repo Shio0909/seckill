@@ -69,7 +69,16 @@
 - ✅ **延迟队列**：基于 Redis ZSET，支持订单超时自动取消
 - ✅ **Prometheus 监控**：HTTP/业务/中间件全方位指标采集
 
+**Phase 4 智能推荐系统** 🆕：
+- ✅ **三层推荐架构**：召回(Go) → 排序(Python) → 重排(Go)
+- ✅ **多路召回**：ItemCF、热门召回、向量召回(Milvus)
+- ✅ **CTR排序模型**：LightGBM 点击率预估
+- ✅ **多样性重排**：MMR 算法平衡相关性与多样性
+- ✅ **冷启动策略**：分级冷启动，新用户也能获得推荐
+- ✅ **Go+Python混合架构**：Go做I/O密集任务，Python做计算密集任务
+
 ---
+![项目架构图](./images/architecture.png)
 
 ## 🏗 系统架构
 
@@ -470,17 +479,6 @@ kafka_consumer_lag             # Kafka 消费延迟
 | 1.9 | 商品管理 CRUD 接口 | P1 | ✅ | `internal/controller/product_controller.go`, `internal/service/product_service.go` |
 | 1.10 | 订单列表/详情接口 | P1 | ✅ | `internal/controller/order_controller.go`, `internal/service/order_service.go` |
 
-#### 重点学习标记
-
-本阶段代码中包含大量 `// 重点学习` 注释，标记了以下知识点：
-- 🔥 Viper 配置加载与热更新原理
-- 🔥 优雅停机信号处理机制
-- 🔥 令牌桶限流算法实现
-- 🔥 幂等性设计模式
-- 🔥 Cache Aside Pattern 缓存策略
-- 🔥 表格驱动测试方法
-- 🔥 订单状态机设计
-
 #### 关键代码示例
 
 **配置文件（config/config.yaml）**：
@@ -663,10 +661,6 @@ message ValidateTokenResponse {
 - ✅ Kafka 实现（支持分区、消费者组）
 - ✅ 消息可靠性保证（确认、重试机制）
 
-**面试考点**：
-1. 为什么要对消息队列做抽象？（依赖倒置、便于测试和迁移）
-2. RabbitMQ 和 Kafka 的区别？
-3. 如何保证消息不丢失？
 
 ##### 3.2 分布式锁（pkg/distlock）
 
@@ -694,10 +688,6 @@ defer lock.Unlock(ctx)
 // 执行业务逻辑...
 ```
 
-**面试考点**：
-1. 为什么用 Lua 脚本而不是多条 Redis 命令？
-2. 看门狗续期间隔如何设置？（TTL/3）
-3. Redis 主从切换时锁可能丢失怎么办？（Redlock）
 
 ##### 3.3 延迟队列（pkg/delayqueue）
 
@@ -730,10 +720,6 @@ queue.AddOrder(ctx, OrderTimeoutPayload{
 queue.RemoveOrder(ctx, "order-001")
 ```
 
-**面试考点**：
-1. 延迟队列有哪些实现方案？各自优缺点？
-2. 如何保证任务不被重复消费？
-3. 消费失败的任务如何处理？
 
 ##### 3.4 Prometheus 监控（pkg/metrics）
 
@@ -768,10 +754,6 @@ sum(rate(seckill_http_requests_total{status=~"5.."}[5m]))
 / sum(rate(seckill_http_requests_total[5m]))
 ```
 
-**面试考点**：
-1. Prometheus 四种指标类型分别用于什么场景？
-2. Histogram vs Summary 的区别？
-3. 什么是高基数问题？如何避免？
 
 #### Kafka 消息层抽象
 

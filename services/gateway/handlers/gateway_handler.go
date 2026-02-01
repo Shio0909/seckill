@@ -20,27 +20,11 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// ========================================================================
-// 【重点学习】API Gateway Handler
-// ========================================================================
 // Gateway Handler 负责：
 // 1. 接收 HTTP 请求
 // 2. 参数校验和转换
 // 3. 调用 gRPC 服务
 // 4. 将 gRPC 响应转换为 JSON
-//
-// 📝 简历亮点：
-// - HTTP 到 gRPC 的协议转换
-// - 统一错误处理
-// - 上下文传递
-//
-// 🔥 面试高频：
-// Q: 为什么不直接暴露 gRPC 服务？
-// A: 1. 浏览器不支持 gRPC（需要 grpc-web）
-//    2. HTTP 更通用，易于调试
-//    3. Gateway 可以做统一的认证、限流
-//    4. 可以聚合多个服务的调用
-// ========================================================================
 
 // GatewayHandler 网关处理器
 type GatewayHandler struct {
@@ -53,8 +37,6 @@ func NewGatewayHandler(cm *grpcx.ClientManager) *GatewayHandler {
 		clientManager: cm,
 	}
 }
-
-// ========================= 认证中间件 =========================
 
 // AuthMiddleware 认证中间件
 func (h *GatewayHandler) AuthMiddleware() gin.HandlerFunc {
@@ -121,8 +103,6 @@ func (h *GatewayHandler) AuthMiddleware() gin.HandlerFunc {
 		*/
 	}
 }
-
-// ========================= 用户服务接口 =========================
 
 // Register 用户注册
 func (h *GatewayHandler) Register(c *gin.Context) {
@@ -262,8 +242,6 @@ func (h *GatewayHandler) GetUser(c *gin.Context) {
 	})
 }
 
-// ========================= 商品服务接口 =========================
-
 // ListProducts 商品列表
 func (h *GatewayHandler) ListProducts(c *gin.Context) {
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
@@ -356,8 +334,6 @@ func (h *GatewayHandler) GetStock(c *gin.Context) {
 		},
 	})
 }
-
-// ========================= 订单服务接口 =========================
 
 // ListOrders 订单列表
 func (h *GatewayHandler) ListOrders(c *gin.Context) {
@@ -488,8 +464,6 @@ func (h *GatewayHandler) PayOrder(c *gin.Context) {
 	})
 }
 
-// ========================= 秒杀服务接口 =========================
-
 // DoSeckill 执行秒杀
 func (h *GatewayHandler) DoSeckill(c *gin.Context) {
 	userID := c.GetUint("user_id")
@@ -597,8 +571,6 @@ func (h *GatewayHandler) GetSeckillProduct(c *gin.Context) {
 		},
 	})
 }
-
-// ========================= 辅助函数 =========================
 
 // handleGRPCError 处理 gRPC 错误
 // 【重点】gRPC 错误码到 HTTP 状态码的映射

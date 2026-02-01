@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package ranking;
+
+option go_package = "seckill/proto/ranking";
+
+// 排序服务 (Python实现)
+// 只负责CTR模型推理，不负责召回和重排
+service RankingService {
+    // 批量排序
+    rpc Rank(RankRequest) returns (RankResponse);
+    // 健康检查
+    rpc HealthCheck(HealthRequest) returns (HealthResponse);
+}
+
+// 排序请求
+message RankRequest {
+    int64 user_id = 1;           // 用户ID
+    repeated RankItem items = 2; // 待排序物品
+}
+
+// 待排序物品
+message RankItem {
+    int64 event_id = 1;          // 活动ID
+    double recall_score = 2;     // 召回分数
+    string recall_source = 3;    // 召回来源
+    repeated double features = 4; // 特征向量 (Go端构建)
+    double rank_score = 5;       // 排序分数 (Python填充)
+}
+
+// 排序响应
+message RankResponse {
+    repeated RankItem items = 1;  // 排序后的物品
+    int64 latency_ms = 2;        // 耗时
+}
+
+// 健康检查
+message HealthRequest {}
+
+message HealthResponse {
+    string status = 1;
+    string model_version = 2;
+}

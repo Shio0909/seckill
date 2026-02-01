@@ -1,0 +1,100 @@
+syntax = "proto3";
+
+package recommendation;
+
+option go_package = "seckill/proto/recommendation";
+
+// 推荐服务
+service RecommendationService {
+    // 获取个性化推荐
+    rpc GetRecommendations(RecommendRequest) returns (RecommendResponse);
+    
+    // 获取相似活动
+    rpc GetSimilarEvents(SimilarRequest) returns (SimilarResponse);
+    
+    // 记录用户行为
+    rpc RecordBehavior(BehaviorRequest) returns (BehaviorResponse);
+    
+    // 刷新用户画像
+    rpc RefreshUserProfile(RefreshRequest) returns (RefreshResponse);
+    
+    // 健康检查
+    rpc HealthCheck(HealthRequest) returns (HealthResponse);
+}
+
+// 推荐请求
+message RecommendRequest {
+    int64 user_id = 1;
+    string scene = 2;              // 场景: home/detail/search
+    int32 count = 3;               // 请求数量
+    string city = 4;               // 城市
+    string device_type = 5;        // 设备类型
+    repeated int64 exclude_ids = 6; // 排除的活动ID
+    map<string, string> extra = 7;  // 扩展参数
+}
+
+// 推荐响应
+message RecommendResponse {
+    int32 code = 1;
+    string message = 2;
+    repeated RecommendItem items = 3;
+    string trace_id = 4;           // 追踪ID
+    string ab_group = 5;           // AB测试分组
+}
+
+// 推荐项
+message RecommendItem {
+    int64 event_id = 1;
+    float score = 2;               // 预估分数
+    string recall_source = 3;      // 召回来源
+    map<string, float> debug_info = 4; // 调试信息
+}
+
+// 相似活动请求
+message SimilarRequest {
+    int64 event_id = 1;
+    int32 count = 2;
+    int64 user_id = 3;             // 可选,用于个性化
+}
+
+// 相似活动响应
+message SimilarResponse {
+    int32 code = 1;
+    string message = 2;
+    repeated RecommendItem items = 3;
+}
+
+// 行为记录请求
+message BehaviorRequest {
+    int64 user_id = 1;
+    int64 event_id = 2;
+    string behavior_type = 3;      // view/click/order/favorite
+    int64 timestamp = 4;
+    map<string, string> extra = 5;
+}
+
+// 行为记录响应
+message BehaviorResponse {
+    int32 code = 1;
+    string message = 2;
+}
+
+// 刷新请求
+message RefreshRequest {
+    int64 user_id = 1;
+}
+
+// 刷新响应
+message RefreshResponse {
+    int32 code = 1;
+    string message = 2;
+}
+
+// 健康检查请求
+message HealthRequest {}
+
+// 健康检查响应
+message HealthResponse {
+    bool healthy = 1;
+    string version = 2;
+}

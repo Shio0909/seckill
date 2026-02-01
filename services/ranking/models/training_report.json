@@ -1,0 +1,54 @@
+{
+  "train_metrics": {
+    "train_auc": 0.6701928203911318,
+    "valid_auc": 0.6702147258552389,
+    "train_logloss": 0.6476504536911362,
+    "valid_logloss": 0.6479854662953267,
+    "best_iteration": 100
+  },
+  "test_metrics": {
+    "auc": 0.6687899278926885,
+    "logloss": 0.6480993225900723,
+    "ap": 0.7226993863987966,
+    "precision@0.3": 0.5789223593552663,
+    "recall@0.3": 0.9998920133039609,
+    "precision@0.5": 0.6154085299284955,
+    "recall@0.5": 0.9191719580147726,
+    "precision@0.7": 0.837180746561886,
+    "recall@0.7": 0.07362532935942293
+  },
+  "feature_importance": {
+    "gender": 2748.3322954177856,
+    "age": 10000.723429203033,
+    "city_id": 9161.90506362915,
+    "category_id": 32995.391142845154,
+    "event_city_id": 55475.52566099167,
+    "price": 91806.8631029129,
+    "hot_score": 97801.32117986679,
+    "city_match": 12.614500045776367,
+    "age_group": 2260.4022941589355,
+    "price_level": 6184.637650489807,
+    "hot_level": 6308.11617565155
+  },
+  "params": {
+    "objective": "binary",
+    "metric": [
+      "auc",
+      "binary_logloss"
+    ],
+    "boosting_type": "gbdt",
+    "num_leaves": 31,
+    "max_depth": 6,
+    "learning_rate": 0.05,
+    "feature_fraction": 0.8,
+    "bagging_fraction": 0.8,
+    "bagging_freq": 5,
+    "min_child_samples": 20,
+    "lambda_l1": 0.1,
+    "lambda_l2": 0.1,
+    "verbose": -1,
+    "seed": 42
+  },
+  "data_path": "./data/processed/train_features.csv",
+  "created_at": "2026-02-01T19:43:50.191323"
+}

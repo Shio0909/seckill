@@ -16,10 +16,6 @@ import (
 	"seckill/services/order/handler"
 )
 
-// ========================================================================
-// 【重点学习】Order 微服务入口
-// ========================================================================
-
 var (
 	configFile = flag.String("config", "config/config.yaml", "配置文件路径")
 	port       = flag.Int("port", 50053, "gRPC 服务端口")

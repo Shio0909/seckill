@@ -17,30 +17,10 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-// ========================================================================
-// 【重点学习】Product 微服务 gRPC Handler 实现
-// ========================================================================
 // Product 服务负责：
 // 1. 商品 CRUD 操作
 // 2. 库存管理（预热到 Redis）
 // 3. 库存扣减（配合秒杀）
-//
-// 📝 简历亮点：
-// - 库存预热机制设计
-// - Redis 缓存与数据库同步
-// - 库存扣减原子操作
-//
-// 🔥 面试高频：
-// Q: 为什么要做库存预热？
-// A: 秒杀开始时并发量极高，直接查数据库会打崩 DB。
-//    预热将库存加载到 Redis，利用内存操作的高性能承接流量。
-//
-// Q: Redis 库存和数据库库存如何保持一致？
-// A: 1. 预热时从 DB 加载到 Redis
-//    2. 扣减时先扣 Redis（Lua 原子操作）
-//    3. 异步消息队列更新数据库
-//    4. 最终一致性，允许短暂不一致
-// ========================================================================
 
 // ProductHandler 商品服务处理器
 type ProductHandler struct {
@@ -205,19 +185,6 @@ func (h *ProductHandler) CreateProduct(ctx context.Context, req *pb.CreateProduc
 
 // WarmUpStock 库存预热
 // 【重点】秒杀前调用，将库存加载到 Redis
-// ========================================================================
-// 🔥 面试高频：
-// Q: 库存预热的时机是什么？
-// A: 1. 秒杀活动开始前几分钟
-//  2. 可以通过定时任务自动触发
-//  3. 也可以手动通过管理后台触发
-//
-// Q: 预热时需要注意什么？
-// A: 1. 设置合理的过期时间（活动结束后自动清理）
-//  2. 记录预热日志便于排查问题
-//  3. 预热失败要有告警机制
-//
-// ========================================================================
 func (h *ProductHandler) WarmUpStock(ctx context.Context, req *pb.WarmUpStockRequest) (*pb.WarmUpStockResponse, error) {
 	if req.ProductId <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "商品ID无效")

@@ -10,9 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ========================================================================
-// 【重点学习】从 JWT 中获取用户信息
-// ========================================================================
 // 在 auth 中间件中，JWT 解析后会将用户信息存入 gin.Context
 // 在 Controller 中通过 ctx.Get("userID") 获取
 //
@@ -23,7 +20,6 @@ import (
 //     return
 // }
 // uid := userID.(uint)
-// ========================================================================
 
 type OrderController struct {
 	orderService *service.OrderService

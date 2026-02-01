@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// 【重点学习】使用 miniredis 进行单元测试
 // miniredis 是一个纯 Go 实现的 Redis 服务器，适合单元测试
 // 优点：不依赖外部 Redis、速度快、可控制行为
 func setupTestRedis(t *testing.T) (*redis.Client, func()) {
@@ -30,7 +29,6 @@ func setupTestRedis(t *testing.T) (*redis.Client, func()) {
 	}
 }
 
-// 【重点学习】表格驱动测试：分布式锁基本功能
 func TestLock_BasicOperations(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()
@@ -92,8 +90,6 @@ func TestLock_BasicOperations(t *testing.T) {
 	}
 }
 
-// 【面试高频】测试锁的互斥性
-// 同一时刻只能有一个客户端持有锁
 func TestLock_Mutex(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()
@@ -126,7 +122,6 @@ func TestLock_Mutex(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// 【重点学习】测试锁的安全释放
 // 只有锁的持有者才能释放锁
 func TestLock_SafeRelease(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
@@ -156,7 +151,6 @@ func TestLock_SafeRelease(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// 【重点学习】测试重试机制
 // 注意：此测试模拟锁被主动释放后重试成功的场景
 // miniredis 的 TTL 过期行为与真实 Redis 不同，因此使用主动释放方式测试
 func TestLock_Retry(t *testing.T) {
@@ -195,7 +189,6 @@ func TestLock_Retry(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// 【面试高频】测试看门狗自动续期
 func TestLock_WatchDog(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()
@@ -225,7 +218,6 @@ func TestLock_WatchDog(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-// 【重点学习】并发测试：确保只有一个协程能获取锁
 func TestLock_Concurrent(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()
@@ -266,7 +258,6 @@ func TestLock_Concurrent(t *testing.T) {
 	assert.Equal(t, int32(1), successCount, "只有一个协程应该获取到锁")
 }
 
-// 【重点学习】测试 WithLock 便捷函数
 func TestWithLock(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()
@@ -284,7 +275,6 @@ func TestWithLock(t *testing.T) {
 	assert.True(t, executed)
 }
 
-// 【面试高频】测试 context 取消
 func TestLock_ContextCancel(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()

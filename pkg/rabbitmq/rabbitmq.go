@@ -87,6 +87,51 @@ func SendSeckillMessage(uid int64, pid int64) error {
 	return nil
 }
 
+// TicketOrderMessage 票务订单消息
+type TicketOrderMessage struct {
+	UserID    int64  `json:"user_id"`
+	EventID   int64  `json:"event_id"`
+	SessionID int64  `json:"session_id,omitempty"`
+	SeatType  string `json:"seat_type,omitempty"`
+}
+
+// SendTicketMessage 发送票务订单消息到队列
+func SendTicketMessage(uid int64, eventID int64, sessionID int64, seatType string) error {
+	msg := TicketOrderMessage{
+		UserID:    uid,
+		EventID:   eventID,
+		SessionID: sessionID,
+		SeatType:  seatType,
+	}
+
+	body, err := json.Marshal(msg)
+	if err != nil {
+		return fmt.Errorf("序列化票务消息失败: %w", err)
+	}
+
+	err = Channel.Publish(
+		"",
+		QueueName,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        body,
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("发送票务消息失败: %w", err)
+	}
+
+	logger.Log.Info("票务消息已发送",
+		zap.Int64("user_id", uid),
+		zap.Int64("event_id", eventID),
+		zap.Int64("session_id", sessionID),
+		zap.String("seat_type", seatType))
+
+	return nil
+}
+
 // Close 关闭 RabbitMQ 连接
 func Close() {
 	if Channel != nil {

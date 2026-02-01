@@ -1,0 +1,3 @@
+# 模型文件目录
+# 训练好的模型将存放在这里
+# - lgb_ctr_v1.pkl: LightGBM CTR预估模型

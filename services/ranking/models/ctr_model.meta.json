@@ -1,0 +1,48 @@
+{
+  "feature_names": [
+    "gender",
+    "age",
+    "city_id",
+    "category_id",
+    "event_city_id",
+    "price",
+    "hot_score",
+    "city_match",
+    "age_group",
+    "price_level",
+    "hot_level"
+  ],
+  "feature_importance": {
+    "gender": 2748.3322954177856,
+    "age": 10000.723429203033,
+    "city_id": 9161.90506362915,
+    "category_id": 32995.391142845154,
+    "event_city_id": 55475.52566099167,
+    "price": 91806.8631029129,
+    "hot_score": 97801.32117986679,
+    "city_match": 12.614500045776367,
+    "age_group": 2260.4022941589355,
+    "price_level": 6184.637650489807,
+    "hot_level": 6308.11617565155
+  },
+  "params": {
+    "objective": "binary",
+    "metric": [
+      "auc",
+      "binary_logloss"
+    ],
+    "boosting_type": "gbdt",
+    "num_leaves": 31,
+    "max_depth": 6,
+    "learning_rate": 0.05,
+    "feature_fraction": 0.8,
+    "bagging_fraction": 0.8,
+    "bagging_freq": 5,
+    "min_child_samples": 20,
+    "lambda_l1": 0.1,
+    "lambda_l2": 0.1,
+    "verbose": -1,
+    "seed": 42
+  },
+  "created_at": "2026-02-01T19:43:50.191323"
+}

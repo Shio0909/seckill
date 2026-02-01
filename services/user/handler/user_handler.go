@@ -15,37 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// ========================================================================
-// 【重点学习】User 微服务 gRPC Handler 实现
-// ========================================================================
 // 这是 User 服务的核心实现，实现了 proto/user.proto 中定义的接口。
-//
-// 📝 简历亮点：
-// - gRPC 服务实现模式
-// - 业务逻辑与通信协议分离
-// - 统一错误处理（gRPC Status）
-//
-// 🔥 面试高频：
-// Q: gRPC 错误处理与 HTTP 有什么区别？
-// A: gRPC 使用 Status 对象，包含 Code 和 Message，比 HTTP 状态码更丰富。
-//    常用 codes: OK, InvalidArgument, NotFound, Internal, Unauthenticated
-//
-// Q: 为什么业务逻辑要放在 Handler 而不是直接写在 Controller？
-// A: 关注点分离：Handler 处理 gRPC 协议，Controller 处理 HTTP 协议，
-//    业务逻辑可以复用，方便测试和维护。
-//
-// 面试高频问题（补充）：
-// Q: JWT (JSON Web Token) 的结构是怎样的？
-// A: Header (头部) + Payload (负载) + Signature (签名)。
-//    Header: 算法类型 (HS256)。
-//    Payload: 用户信息 (uid, exp)。
-//    Signature: HMACSHA256(base64(Header) + "." + base64(Payload), secret)。
-//
-// Q: JWT 被盗了怎么办？
-// A: 1. 设置较短的过期时间 (Access Token)。
-//    2. 配合 Refresh Token 使用。
-//    3. 建立黑名单机制 (Redis)，用户登出或修改密码时将 Token 加入黑名单。
-// ========================================================================
 
 // UserHandler 用户服务处理器
 type UserHandler struct {

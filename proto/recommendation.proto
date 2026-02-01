@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package recommendation;
+
+option go_package = "seckill/proto/recommendation";
+
+// 推荐服务
+service RecommendationService {
+    // 获取推荐列表
+    rpc GetRecommendations(RecommendRequest) returns (RecommendResponse);
+    // 获取相似活动
+    rpc GetSimilarEvents(SimilarRequest) returns (RecommendResponse);
+    // 记录用户行为
+    rpc RecordBehavior(BehaviorRequest) returns (BehaviorResponse);
+    // 刷新用户画像
+    rpc RefreshUserProfile(RefreshRequest) returns (RefreshResponse);
+    // 健康检查
+    rpc HealthCheck(HealthRequest) returns (HealthResponse);
+}
+
+// 推荐请求
+message RecommendRequest {
+    int64 user_id = 1;            // 用户ID
+    string scene = 2;             // 场景: home/category/similar
+    int32 count = 3;              // 请求数量
+    string city = 4;              // 城市
+    int64 category_id = 5;        // 类别ID (可选)
+    bool debug = 6;               // 是否返回调试信息
+    map<string, string> context = 7;  // 上下文信息
+}
+
+// 推荐响应
+message RecommendResponse {
+    repeated RecommendItem items = 1; // 推荐结果
+    string request_id = 2;            // 请求ID
+    int64 latency_ms = 3;             // 耗时(毫秒)
+}
+
+// 推荐物品
+message RecommendItem {
+    int64 event_id = 1;      // 活动ID
+    float score = 2;         // 推荐分数
+    string recall_source = 3; // 召回来源
+    string debug_info = 4;    // 调试信息
+}
+
+// 相似活动请求
+message SimilarRequest {
+    int64 event_id = 1;      // 活动ID
+    int32 count = 2;         // 请求数量
+}
+
+// 行为请求
+message BehaviorRequest {
+    int64 user_id = 1;       // 用户ID
+    int64 event_id = 2;      // 活动ID
+    string behavior = 3;     // 行为类型: view/click/order
+    int64 timestamp = 4;     // 时间戳
+}
+
+// 行为响应
+message BehaviorResponse {
+    bool success = 1;
+}
+
+// 刷新请求
+message RefreshRequest {
+    int64 user_id = 1;
+}
+
+// 刷新响应
+message RefreshResponse {
+    bool success = 1;
+}
+
+// 健康检查请求
+message HealthRequest {}
+
+// 健康检查响应
+message HealthResponse {
+    string status = 1;
+    string version = 2;
+}

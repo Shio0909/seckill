@@ -15,9 +15,6 @@ import (
 	"seckill/internal/middleware"
 )
 
-// ========================================================================
-// 【重点学习】路由设计原则
-// ========================================================================
 // RESTful API 设计：
 // - GET    /resources      -> 列表
 // - GET    /resources/:id  -> 详情
@@ -32,7 +29,6 @@ import (
 // 4. ZapLogger   - 记录请求日志
 // 5. Cors        - 处理跨域
 // 6. Auth        - 身份认证
-// ========================================================================
 
 // NewRouter 负责初始化 Gin 引擎，加载中间件和注册路由
 func NewRouter() *gin.Engine {
@@ -59,9 +55,7 @@ func NewRouter() *gin.Engine {
 	// 5. 注册业务路由
 	api := r.Group("/api/v1")
 	{
-		// ============================================================
 		// 公开接口（无需登录）
-		// ============================================================
 		api.POST("/register", userCtrl.Register)
 		api.POST("/login", userCtrl.Login)
 
@@ -73,9 +67,7 @@ func NewRouter() *gin.Engine {
 		// 幂等 Token 获取（公开）
 		api.GET("/idempotent/token", middleware.GenerateIdempotentToken)
 
-		// ============================================================
 		// 需要登录的接口
-		// ============================================================
 		authGroup := api.Group("/")
 		authGroup.Use(middleware.JWTAuth())
 		{
@@ -114,9 +106,7 @@ func NewRouter() *gin.Engine {
 			// }
 		}
 
-		// ============================================================
 		// 管理员接口（需要管理员权限）
-		// ============================================================
 		adminGroup := api.Group("/admin")
 		adminGroup.Use(middleware.JWTAuth())
 		// TODO: adminGroup.Use(middleware.AdminRequired()) // 管理员权限检查

@@ -74,7 +74,7 @@ redis:
 # RabbitMQ 配置
 # -----------------------------------------------------------------------------
 rabbitmq:
-  url: amqp://guest:guest@localhost:6672/  # AMQP 连接地址
+  url: amqp://guest:guest@localhost:5673/  # AMQP 连接地址
   queue_name: seckill_queue                # 秒杀队列名称
 
 # -----------------------------------------------------------------------------

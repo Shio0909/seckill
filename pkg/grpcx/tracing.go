@@ -17,37 +17,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// ========================================================================
-// 【重点学习】gRPC 链路追踪拦截器
-// ========================================================================
 // gRPC 拦截器是实现链路追踪的关键，负责：
 // 1. 客户端：在请求中注入 TraceContext
 // 2. 服务端：从请求中提取 TraceContext
 // 3. 创建 Span 记录 RPC 调用信息
-//
-// 📝 简历亮点：
-// - 使用 OpenTelemetry 实现 gRPC 链路追踪
-// - 理解 Context 传播机制
-// - 自定义 Span 属性记录业务信息
-//
-// 🔥 面试高频：
-// Q: gRPC 拦截器和 HTTP 中间件的区别？
-// A: 1. gRPC 拦截器分为 Unary（一元）和 Stream（流式）
-//    2. gRPC 使用 metadata 传递上下文（类似 HTTP Header）
-//    3. gRPC 是强类型的，拦截器可以获取完整的请求响应结构
-//
-// Q: 如何在 gRPC 调用中传播 TraceID？
-// A: 1. 客户端：将 TraceContext 注入到 gRPC metadata
-//    2. 服务端：从 metadata 中提取 TraceContext
-//    3. 使用 OpenTelemetry 的 Propagator 自动完成
-//
-// Q: gRPC 链路追踪需要记录哪些信息？
-// A: 1. RPC 方法名（如 /user.UserService/GetUser）
-//    2. 请求参数（注意敏感信息脱敏）
-//    3. 响应状态码
-//    4. 调用耗时
-//    5. 错误信息（如果有）
-// ========================================================================
 
 // metadataCarrier 实现 OpenTelemetry 的 TextMapCarrier 接口
 // 用于在 gRPC metadata 中传播 TraceContext
@@ -78,9 +51,7 @@ func (c *metadataCarrier) Keys() []string {
 	return keys
 }
 
-// ========================================================================
 // 【重点】客户端链路追踪拦截器
-// ========================================================================
 
 // TracingClientInterceptor 客户端链路追踪拦截器
 // 负责：
@@ -153,9 +124,7 @@ func TracingClientInterceptor() grpc.UnaryClientInterceptor {
 	}
 }
 
-// ========================================================================
 // 【重点】服务端链路追踪拦截器
-// ========================================================================
 
 // TracingServerInterceptor 服务端链路追踪拦截器
 // 负责：
@@ -219,9 +188,7 @@ func TracingServerInterceptor() grpc.UnaryServerInterceptor {
 	}
 }
 
-// ========================================================================
 // 【扩展】流式 RPC 链路追踪拦截器
-// ========================================================================
 
 // TracingStreamClientInterceptor 流式客户端拦截器
 func TracingStreamClientInterceptor() grpc.StreamClientInterceptor {
@@ -331,9 +298,7 @@ func (s *tracingServerStream) Context() context.Context {
 	return s.ctx
 }
 
-// ========================================================================
 // 【工具函数】创建带追踪的拦截器链
-// ========================================================================
 
 // WithTracingClientInterceptors 返回带追踪的客户端拦截器
 func WithTracingClientInterceptors() []grpc.DialOption {
@@ -362,9 +327,7 @@ func WithTracingServerInterceptors() []grpc.ServerOption {
 	}
 }
 
-// ========================================================================
 // 【重点】在业务代码中添加 Span 属性
-// ========================================================================
 
 // AddUserAttributes 添加用户相关属性到当前 Span
 func AddUserAttributes(ctx context.Context, userID int64, username string) {
@@ -394,9 +357,7 @@ func RecordError(ctx context.Context, err error, description string) {
 	}
 }
 
-// ========================================================================
 // 【重点】链路追踪最佳实践
-// ========================================================================
 // 1. Span 命名规范：
 //    - 格式：<service>/<operation>
 //    - 示例：user-service/GetUser
@@ -419,7 +380,6 @@ func RecordError(ctx context.Context, err error, description string) {
 //    - 记录错误类型和消息
 //    - 设置 Span 状态为 Error
 //    - 添加错误发生的上下文
-// ========================================================================
 
 // Example 使用示例
 func Example() {

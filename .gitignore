@@ -1,0 +1,61 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Go build output
+/cmd/main
+/cmd/api/main
+
+# Test binary
+*.test
+
+# Go coverage
+*.out
+*.prof
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Config (use config.example.yaml as template)
+# config/config.yaml
+
+# AI documentation (kept in dev branch only)
+ai_docs/
+
+# Python virtual environments
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+
+# ML datasets & processed data
+services/ranking/data/
+services/recommendation/data/
+
+# ML model binaries (keep meta.json for reference)
+*.bin
+*.pkl
+*.onnx
+*.pt
+*.h5
+*.joblib
+
+# Logs
+*.log
+logs/
+
+# Temp files
+*.tmp
+*.bak

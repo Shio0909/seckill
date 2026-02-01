@@ -8,46 +8,11 @@ import (
 	"github.com/hashicorp/consul/api"
 )
 
-// ========================================================================
-// 【重点学习】Consul 服务注册与发现
-// ========================================================================
 // Consul 是 HashiCorp 开发的服务网格解决方案，提供：
 // 1. 服务注册（Service Registration）
 // 2. 服务发现（Service Discovery）
 // 3. 健康检查（Health Check）
 // 4. KV 存储（配置中心）
-//
-// 📝 简历亮点：
-// - 理解服务注册与发现的原理
-// - Consul 的一致性模型（Raft 协议）
-// - 健康检查机制（HTTP/TCP/gRPC）
-//
-// 🔥 面试高频：
-// Q: 服务发现有哪些方式？
-// A: 1) 客户端发现（Client-side Discovery）- 客户端直接查询注册中心
-//    2) 服务端发现（Server-side Discovery）- 通过负载均衡器转发
-//    Consul 属于客户端发现模式
-//
-// Q: Consul vs etcd vs Nacos 的区别？
-// A: Consul - Go 语言，内置服务发现+健康检查，CP 模型
-//    etcd - Go 语言，K8s 底层存储，强一致性
-//    Nacos - Java 语言，阿里开源，支持 AP/CP 切换
-//
-// 面试高频问题（补充）：
-// Q: 什么是 CAP 定理？Consul 属于哪一种？
-// A: CAP 指 Consistency (一致性), Availability (可用性), Partition Tolerance (分区容错性)。
-//    分布式系统无法同时满足这三点。
-//    Consul 保证 CP (一致性 + 分区容错)，在网络分区时可能会牺牲可用性（无法写入）。
-//    Eureka 是 AP (可用性 + 分区容错)。
-//
-// Q: 服务注册时，IP 应该怎么获取？
-// A: 在容器化环境（Docker/K8s）中，不能简单使用 127.0.0.1。
-//    通常通过环境变量注入 Pod IP，或者通过网卡接口获取非 Loopback 的内网 IP。
-//
-// Q: Consul 的健康检查是怎么做的？
-// A: Consul 支持 Script, HTTP, TCP, TTL, Docker, gRPC 等多种检查方式。
-//    Agent 会定期执行检查，如果失败则标记服务为 Critical，不再返回给客户端。
-// ========================================================================
 
 // Config Consul 客户端配置
 type Config struct {
@@ -94,16 +59,12 @@ type ServiceRegistration struct {
 	CheckTimeout  string // 检查超时，如 "5s"
 }
 
-// ========================================================================
-// 【重点学习】服务注册流程
-// ========================================================================
 // 1. 服务启动时向 Consul 注册自己的信息
 // 2. Consul 定期对服务进行健康检查
 // 3. 健康检查失败时，Consul 将服务标记为不健康
 // 4. 服务关闭时主动注销
 //
 // 关键点：服务 ID 必须唯一，通常用 "服务名-IP-端口" 格式
-// ========================================================================
 
 // Register 注册服务
 func (c *Client) Register(reg *ServiceRegistration) error {
@@ -145,9 +106,6 @@ func (c *Client) Deregister(serviceID string) error {
 	return c.client.Agent().ServiceDeregister(serviceID)
 }
 
-// ========================================================================
-// 【重点学习】服务发现流程
-// ========================================================================
 // 1. 客户端向 Consul 查询目标服务的健康实例列表
 // 2. 从返回的实例中选择一个（负载均衡）
 // 3. 直接连接选中的服务实例
@@ -157,7 +115,6 @@ func (c *Client) Deregister(serviceID string) error {
 // - 随机（Random）
 // - 加权轮询（Weighted Round Robin）
 // - 最少连接（Least Connections）
-// ========================================================================
 
 // ServiceInstance 服务实例信息
 type ServiceInstance struct {
@@ -206,16 +163,10 @@ func (c *Client) GetServiceAddress(serviceName string) (string, error) {
 	return fmt.Sprintf("%s:%d", inst.Address, inst.Port), nil
 }
 
-// ========================================================================
-// 【重点学习】Consul KV 存储 - 配置中心
-// ========================================================================
 // Consul KV 可以用作轻量级配置中心：
 // 1. 存储服务配置（数据库连接、Redis 地址等）
 // 2. 支持 Watch 机制实现配置热更新
 // 3. 支持事务操作
-//
-// 📝 简历亮点：使用 Consul KV 实现配置中心，支持配置热更新
-// ========================================================================
 
 // SetKV 设置键值对
 func (c *Client) SetKV(key, value string) error {

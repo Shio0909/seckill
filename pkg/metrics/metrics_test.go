@@ -15,7 +15,6 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-// 【重点学习】测试 Prometheus 指标收集
 func TestPrometheusMiddleware_RecordsMetrics(t *testing.T) {
 	// 创建测试路由
 	router := gin.New()
@@ -34,7 +33,6 @@ func TestPrometheusMiddleware_RecordsMetrics(t *testing.T) {
 	assert.Equal(t, float64(1), count, "请求计数应该为 1")
 }
 
-// 【面试高频】测试延迟直方图
 func TestPrometheusMiddleware_RecordsDuration(t *testing.T) {
 	router := gin.New()
 	router.Use(PrometheusMiddleware())
@@ -52,7 +50,6 @@ func TestPrometheusMiddleware_RecordsDuration(t *testing.T) {
 	assert.Greater(t, count, float64(0), "应该记录请求")
 }
 
-// 【重点学习】测试业务指标记录
 func TestBusinessMetrics(t *testing.T) {
 	// 记录秒杀请求
 	RecordSeckillRequest("product-001", "success", 10*time.Millisecond)
@@ -71,7 +68,6 @@ func TestBusinessMetrics(t *testing.T) {
 	assert.Equal(t, float64(100), stock)
 }
 
-// 【面试高频】测试 metrics endpoint
 func TestMetricsHandler(t *testing.T) {
 	router := gin.New()
 	router.GET("/metrics", MetricsHandler())
@@ -86,7 +82,6 @@ func TestMetricsHandler(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "# TYPE")
 }
 
-// 【重点学习】测试熔断器指标
 func TestCircuitBreakerMetrics(t *testing.T) {
 	// 设置熔断器状态
 	SetCircuitBreakerState("user-service", 0) // closed
@@ -104,7 +99,6 @@ func TestCircuitBreakerMetrics(t *testing.T) {
 	assert.Equal(t, float64(1), failureCount)
 }
 
-// 【面试高频】测试分布式锁指标
 func TestDistLockMetrics(t *testing.T) {
 	// 记录锁获取
 	RecordDistLockAcquire("order:123", true)
@@ -121,7 +115,6 @@ func TestDistLockMetrics(t *testing.T) {
 	// 验证直方图有数据即可
 }
 
-// 【重点学习】测试 Redis 操作指标
 func TestRedisMetrics(t *testing.T) {
 	RecordRedisOperation("get", "success", 1*time.Millisecond)
 	RecordRedisOperation("set", "success", 2*time.Millisecond)
@@ -136,7 +129,6 @@ func TestRedisMetrics(t *testing.T) {
 	assert.Equal(t, float64(1), setSuccess)
 }
 
-// 【面试高频】测试 MQ 指标
 func TestMQMetrics(t *testing.T) {
 	RecordMQPublish("seckill-queue")
 	RecordMQConsume("seckill-queue", "success")

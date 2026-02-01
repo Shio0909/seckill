@@ -14,9 +14,6 @@ import (
 	"gorm.io/gorm"
 )
 
-// ========================================================================
-// 【重点学习】Service 层设计
-// ========================================================================
 // Service 层负责业务逻辑，是 Controller 和 Repository 之间的桥梁
 // 职责：
 // 1. 业务逻辑编排（调用多个 Repository 方法）
@@ -27,7 +24,6 @@ import (
 // 不应该在 Service 层：
 // - 直接操作 HTTP 请求/响应（那是 Controller 的事）
 // - 直接写 SQL（那是 Repository 的事）
-// ========================================================================
 
 // ProductService 商品服务
 type ProductService struct{}
@@ -95,9 +91,6 @@ func (s *ProductService) GetByID(id uint) (*model.Product, error) {
 	return &product, nil
 }
 
-// ========================================================================
-// 【重点学习】缓存策略 - Cache Aside Pattern
-// ========================================================================
 // 读取时：先读缓存，缓存没有则读数据库，再写入缓存
 // 写入时：先更新数据库，再删除缓存（不是更新缓存！）
 //
@@ -109,7 +102,6 @@ func (s *ProductService) GetByID(id uint) (*model.Product, error) {
 // 1. 删除缓存
 // 2. 更新数据库
 // 3. 延迟一段时间再删除缓存（防止并发读写不一致）
-// ========================================================================
 
 // GetStock 获取商品库存（优先读缓存）
 func (s *ProductService) GetStock(productID uint) (int, error) {
@@ -138,29 +130,43 @@ func (s *ProductService) GetStock(productID uint) (int, error) {
 	return product.Stock, nil
 }
 
-// CreateProductRequest 创建商品请求
+// CreateProductRequest 创建活动请求
 type CreateProductRequest struct {
-	Name         string    `json:"name" binding:"required,min=1,max=100"`
-	Price        float64   `json:"price" binding:"required,gt=0"`
-	SeckillPrice float64   `json:"seckill_price" binding:"required,gt=0"`
-	Stock        int       `json:"stock" binding:"required,min=0"`
-	Description  string    `json:"description"`
-	ImageURL     string    `json:"image_url"`
-	StartTime    time.Time `json:"start_time" binding:"required"`
-	EndTime      time.Time `json:"end_time" binding:"required,gtfield=StartTime"`
+	Name        string    `json:"name" binding:"required,min=1,max=200"`
+	CategoryID  int       `json:"category_id" binding:"omitempty,min=1,max=5"`
+	CityID      int       `json:"city_id" binding:"omitempty"`
+	City        string    `json:"city"`
+	Venue       string    `json:"venue"`
+	Price       float64   `json:"price" binding:"required,gt=0"`
+	HighPrice   float64   `json:"high_price" binding:"omitempty,gtefield=Price"`
+	Stock       int       `json:"stock" binding:"required,min=0"`
+	Description string    `json:"description"`
+	ImageURL    string    `json:"image_url"`
+	Artist      string    `json:"artist"`
+	Tags        string    `json:"tags"`
+	StartTime   time.Time `json:"start_time" binding:"required"`
+	EndTime     time.Time `json:"end_time" binding:"required,gtfield=StartTime"`
+	EventTime   time.Time `json:"event_time" binding:"required"`
 }
 
-// Create 创建商品
+// Create 创建活动
 func (s *ProductService) Create(req *CreateProductRequest) (*model.Product, error) {
 	product := &model.Product{
-		Name:         req.Name,
-		Price:        req.Price,
-		SeckillPrice: req.SeckillPrice,
-		Stock:        req.Stock,
-		Description:  req.Description,
-		ImageURL:     req.ImageURL,
-		StartTime:    req.StartTime,
-		EndTime:      req.EndTime,
+		Name:        req.Name,
+		CategoryID:  req.CategoryID,
+		CityID:      req.CityID,
+		City:        req.City,
+		Venue:       req.Venue,
+		Price:       req.Price,
+		HighPrice:   req.HighPrice,
+		Stock:       req.Stock,
+		Description: req.Description,
+		ImageURL:    req.ImageURL,
+		Artist:      req.Artist,
+		Tags:        req.Tags,
+		StartTime:   req.StartTime,
+		EndTime:     req.EndTime,
+		EventTime:   req.EventTime,
 	}
 
 	if err := database.DB.Create(product).Error; err != nil {
@@ -224,9 +230,6 @@ func (s *ProductService) Update(id uint, req *UpdateProductRequest) error {
 		return errors.New("商品不存在")
 	}
 
-	// ====================================================================
-	// 【重点学习】更新后删除缓存
-	// ====================================================================
 	ctx := context.Background()
 	redis.Client.Del(ctx, fmt.Sprintf("seckill:stock:%d", id))
 
@@ -252,13 +255,9 @@ func (s *ProductService) Delete(id uint) error {
 
 // SetStock 设置商品库存（同时更新 Redis）
 func (s *ProductService) SetStock(id uint, stock int) error {
-	// ====================================================================
-	// 【重点学习】库存预热
-	// ====================================================================
 	// 秒杀开始前，需要将库存从 MySQL 同步到 Redis
 	// 这个操作通常由管理员在秒杀开始前手动触发
 	// 或者通过定时任务自动执行
-	// ====================================================================
 
 	// 1. 更新数据库
 	result := database.DB.Model(&model.Product{}).Where("id = ?", id).Update("stock", stock)

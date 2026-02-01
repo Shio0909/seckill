@@ -29,7 +29,6 @@ func setupTestRedis(t *testing.T) (*redis.Client, func()) {
 	}
 }
 
-// 【重点学习】测试延迟任务的基本入队出队
 func TestDelayQueue_PushAndProcess(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()
@@ -75,7 +74,6 @@ func TestDelayQueue_PushAndProcess(t *testing.T) {
 	queue.Stop()
 }
 
-// 【面试高频】测试任务执行顺序（按到期时间）
 func TestDelayQueue_ExecutionOrder(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()
@@ -121,7 +119,6 @@ func TestDelayQueue_ExecutionOrder(t *testing.T) {
 	assert.Equal(t, "task-3", executionOrder[2])
 }
 
-// 【重点学习】测试任务重试机制
 func TestDelayQueue_Retry(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()
@@ -158,7 +155,6 @@ func TestDelayQueue_Retry(t *testing.T) {
 	assert.Equal(t, int32(3), atomic.LoadInt32(&attemptCount), "应该重试 3 次")
 }
 
-// 【面试高频】测试死信队列
 func TestDelayQueue_DeadLetter(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()
@@ -192,7 +188,6 @@ func TestDelayQueue_DeadLetter(t *testing.T) {
 	assert.Equal(t, int64(1), deadLen, "应该有一个死信任务")
 }
 
-// 【重点学习】测试未知任务类型
 func TestDelayQueue_UnknownTaskType(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()
@@ -218,7 +213,6 @@ func TestDelayQueue_UnknownTaskType(t *testing.T) {
 	assert.Equal(t, int64(1), deadLen, "未知类型任务应该进入死信队列")
 }
 
-// 【面试高频】测试队列长度统计
 func TestDelayQueue_Len(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()
@@ -239,11 +233,8 @@ func TestDelayQueue_Len(t *testing.T) {
 	assert.Equal(t, int64(5), length)
 }
 
-// ========================================
 // 订单超时队列测试
-// ========================================
 
-// 【重点学习】测试订单超时场景
 func TestOrderTimeoutQueue_Basic(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()
@@ -288,7 +279,6 @@ func TestOrderTimeoutQueue_Basic(t *testing.T) {
 	mu.Unlock()
 }
 
-// 【面试高频】测试支付成功移除订单
 func TestOrderTimeoutQueue_RemoveOnPayment(t *testing.T) {
 	client, cleanup := setupTestRedis(t)
 	defer cleanup()

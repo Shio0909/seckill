@@ -16,56 +16,11 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// ========================================================================
-// 【重点学习】Seckill 微服务 gRPC Handler 实现
-// ========================================================================
 // Seckill 服务是整个秒杀系统的核心，负责：
 // 1. 处理秒杀请求
 // 2. Redis 预扣库存
 // 3. 发送消息到 MQ
 // 4. 返回秒杀结果
-//
-// 📝 简历亮点：
-// - Redis Lua 脚本原子操作
-// - 消息队列异步削峰
-// - 熔断器保护下游服务
-// - 结果轮询机制
-//
-// 🔥 面试高频：
-// Q: 秒杀系统如何解决并发问题？
-// A: 分层过滤思想：
-//    1. 前端：倒计时、按钮置灰、验证码
-//    2. 网关：限流、黑名单
-//    3. 缓存层：Redis 预扣库存（Lua 原子操作）
-//    4. 消息队列：异步处理，削峰填谷
-//    5. 数据库：乐观锁防超卖
-//
-// Q: 如何保证不超卖？
-// A: 1. Redis Lua 脚本原子扣减
-//    2. 数据库层面使用乐观锁（WHERE stock >= quantity）
-//    3. 联合唯一索引防止重复下单
-//
-// Q: 用户如何知道秒杀是否成功？
-// A: 两种方案：
-//    1. 同步返回：直接等待消息处理完成（延迟高）
-//    2. 异步轮询：先返回"排队中"，用户轮询结果（本项目方案）
-//
-// 面试高频问题（补充）：
-// Q: Redis 挂了怎么办？
-// A: 1. 主从哨兵/集群模式保证高可用。
-//    2. 本地缓存（Local Cache）兜底（如 GoCache），但要注意数据一致性问题。
-//    3. 降级处理：直接返回“活动太火爆，请稍后再试”。
-//
-// Q: 消息队列消息丢失怎么办？
-// A: 1. 生产者：开启 Confirm 模式，确保消息发送到 Broker。
-//    2. Broker：开启持久化（Exchange, Queue, Message）。
-//    3. 消费者：手动 ACK，确保业务逻辑执行成功后再确认消息。
-//
-// Q: 为什么秒杀要用 Lua 脚本？
-// A: Redis 的单个命令是原子的，但多个命令组合不是。
-//    Lua 脚本可以将多个命令（检查库存、扣减库存、记录用户）打包成一个原子操作，
-//    避免并发竞争条件 (Race Condition)，且减少网络 RTT。
-// ========================================================================
 
 // SeckillHandler 秒杀服务处理器
 type SeckillHandler struct {
@@ -128,9 +83,6 @@ func (h *SeckillHandler) DoSeckill(ctx context.Context, req *pb.SeckillRequest) 
 }
 
 // doSeckillWithLua 使用 Lua 脚本执行秒杀
-// ========================================================================
-// 【重点学习】Redis Lua 脚本原子操作
-// ========================================================================
 // 为什么用 Lua？
 // 1. 原子性：整个脚本作为一个命令执行，不会被打断
 // 2. 性能：减少网络往返，多个操作一次完成
@@ -141,7 +93,6 @@ func (h *SeckillHandler) DoSeckill(ctx context.Context, req *pb.SeckillRequest) 
 // 2. 检查库存是否充足（GET）
 // 3. 扣减库存（DECR）
 // 4. 记录用户已购买（SADD）
-// ========================================================================
 func (h *SeckillHandler) doSeckillWithLua(ctx context.Context, userID, productID int64) (bool, string) {
 	// 准备 Key
 	stockKey := fmt.Sprintf("seckill:stock:%d", productID)
@@ -192,15 +143,6 @@ func (h *SeckillHandler) doSeckillWithLua(ctx context.Context, userID, productID
 
 // GetSeckillResult 获取秒杀结果
 // 【重点】用户轮询此接口获取秒杀结果
-// ========================================================================
-// 🔥 面试高频：
-// Q: 为什么用轮询而不是 WebSocket？
-// A: 1. 秒杀场景：用户主动刷新，轮询更简单
-//  2. WebSocket 需要维护长连接，服务端压力大
-//  3. 轮询可以利用 HTTP 缓存（CDN）
-//  4. 实际可以结合使用：先轮询，超时后降级提示
-//
-// ========================================================================
 func (h *SeckillHandler) GetSeckillResult(ctx context.Context, req *pb.GetResultRequest) (*pb.GetResultResponse, error) {
 	if req.UserId <= 0 || req.ProductId <= 0 {
 		return nil, status.Error(codes.InvalidArgument, "参数无效")

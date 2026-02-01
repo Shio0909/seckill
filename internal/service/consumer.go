@@ -14,7 +14,6 @@ import (
 )
 
 //处理消息队列的消费者
-//流程：连上 RabbitMQ -> 监听队列 -> 收到消息 -> 解析json -> 开启数据库事务 -> 扣库存 -> 创建订单 -> ack确认
 
 // startConsumer 启动消费者
 func StartConsumer() {

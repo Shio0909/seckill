@@ -1,0 +1,133 @@
+syntax = "proto3";
+
+package ticket;
+
+option go_package = "seckill/proto/ticket";
+
+// 票务服务是 EventHub 平台的核心，处理演唱会、体育赛事等活动抢票：
+// 1. 高并发请求（Redis Lua 原子操作）
+// 2. 防止超卖（库存预扣 + 消息队列异步下单）
+// 3. 防止重复购买（Redis Set 记录）
+// 4. 多场次多档位支持
+
+service TicketService {
+    // 执行抢票（核心接口）
+    rpc PurchaseTicket(PurchaseTicketRequest) returns (PurchaseTicketResponse);
+    
+    // 查询抢票结果
+    rpc GetPurchaseResult(GetPurchaseResultRequest) returns (GetPurchaseResultResponse);
+    
+    // 获取活动票务信息
+    rpc GetEventTicketInfo(GetEventTicketInfoRequest) returns (GetEventTicketInfoResponse);
+    
+    // 获取场次列表
+    rpc GetEventSessions(GetEventSessionsRequest) returns (GetEventSessionsResponse);
+    
+    // 检查票务库存
+    rpc CheckTicketStock(CheckTicketStockRequest) returns (CheckTicketStockResponse);
+}
+
+message PurchaseTicketRequest {
+    uint64 user_id = 1;
+    uint64 event_id = 2;
+    uint64 session_id = 3;  // 场次ID
+    string seat_type = 4;   // 座位类型：vip, premium, standard, economy
+    int32 quantity = 5;     // 购买数量，默认1
+}
+
+message PurchaseTicketResponse {
+    int32 code = 1;
+    string message = 2;
+    // 抢票成功时返回订单号，客户端轮询查询结果
+    string order_no = 3;
+}
+
+message GetPurchaseResultRequest {
+    uint64 user_id = 1;
+    uint64 event_id = 2;
+    string order_no = 3;
+}
+
+// 抢票结果状态
+enum PurchaseStatus {
+    PURCHASE_STATUS_UNKNOWN = 0;
+    PURCHASE_STATUS_QUEUING = 1;   // 排队中（正在创建订单）
+    PURCHASE_STATUS_SUCCESS = 2;   // 抢票成功，等待支付
+    PURCHASE_STATUS_FAIL = 3;      // 抢票失败
+    PURCHASE_STATUS_PAID = 4;      // 已支付
+    PURCHASE_STATUS_EXPIRED = 5;   // 支付超时
+    PURCHASE_STATUS_CANCELLED = 6; // 已取消
+}
+
+message GetPurchaseResultResponse {
+    int32 code = 1;
+    string message = 2;
+    PurchaseStatus status = 3;
+    string order_no = 4;
+    int64 expire_time = 5;  // 支付截止时间（Unix时间戳）
+}
+
+message GetEventTicketInfoRequest {
+    uint64 event_id = 1;
+}
+
+message GetEventTicketInfoResponse {
+    int32 code = 1;
+    string message = 2;
+    EventTicketInfo info = 3;
+}
+
+message EventTicketInfo {
+    uint64 event_id = 1;
+    string title = 2;
+    string category = 3;        // 分类：演唱会、话剧、体育等
+    string city = 4;
+    string venue = 5;           // 场馆
+    repeated string artists = 6; // 艺人/演员列表
+    int64 sale_start_time = 7;  // 开售时间
+    int32 status = 8;           // 0:未开售 1:预售中 2:售卖中 3:已售罄 4:已结束
+    repeated SessionInfo sessions = 9;
+}
+
+message SessionInfo {
+    uint64 session_id = 1;
+    int64 start_time = 2;       // 场次开始时间
+    int64 end_time = 3;         // 场次结束时间
+    repeated SeatTypeInfo seat_types = 4;
+}
+
+message SeatTypeInfo {
+    string type = 1;            // vip, premium, standard, economy
+    string name = 2;            // 显示名称：VIP区、内场、看台等
+    double price = 3;           // 票价
+    int32 stock = 4;            // 库存
+    int32 limit_per_user = 5;   // 每人限购数量
+}
+
+message GetEventSessionsRequest {
+    uint64 event_id = 1;
+}
+
+message GetEventSessionsResponse {
+    int32 code = 1;
+    string message = 2;
+    repeated SessionInfo sessions = 3;
+}
+
+message CheckTicketStockRequest {
+    uint64 event_id = 1;
+    uint64 session_id = 2;
+}
+
+message CheckTicketStockResponse {
+    int32 code = 1;
+    string message = 2;
+    repeated SeatTypeStock stocks = 3;
+}
+
+message SeatTypeStock {
+    string seat_type = 1;
+    int32 available = 2;        // 可售数量
+    int32 total = 3;            // 总数量
+    bool can_purchase = 4;      // 是否可购买
+}

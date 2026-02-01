@@ -11,9 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// ========================================================================
-// 【重点学习】Controller 层设计
-// ========================================================================
 // Controller 层（或叫 Handler 层）的职责：
 // 1. 接收 HTTP 请求，解析参数
 // 2. 调用 Service 层处理业务逻辑
@@ -30,7 +27,6 @@ import (
 // - Create - 创建资源 (POST /products)
 // - Update - 更新资源 (PUT /products/:id)
 // - Delete - 删除资源 (DELETE /products/:id)
-// ========================================================================
 
 type ProductController struct {
 	productService *service.ProductService
