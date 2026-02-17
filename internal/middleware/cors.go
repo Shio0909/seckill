@@ -14,7 +14,7 @@ func Cors() gin.HandlerFunc {
 		// 允许任何源访问 (生产环境建议改成具体的域名，比如 "http://localhost:8080")
 		c.Header("Access-Control-Allow-Origin", "*")
 		// 允许的 Header 类型
-		c.Header("Access-Control-Allow-Headers", "Content-Type, AccessToken, X-CSRF-Token, Authorization, Token")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, AccessToken, X-CSRF-Token, Authorization, Token, X-Idempotent-Token")
 		// 允许的方法
 		c.Header("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE, UPDATE")
 		c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type")

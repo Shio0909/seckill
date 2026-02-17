@@ -56,6 +56,10 @@ services/recommendation/data/
 *.log
 logs/
 
+# Node.js
+web/node_modules/
+web/dist/
+
 # Temp files
 *.tmp
 *.bak

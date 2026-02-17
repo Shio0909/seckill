@@ -13,6 +13,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const maxRetryCount = 3 // 消息最大重试次数
+
 //处理消息队列的消费者
 
 // startConsumer 启动消费者
@@ -45,16 +47,33 @@ func StartConsumer() {
 				continue
 			}
 			logger.Log.Info("收到消息", zap.Int64("uid", msg.UserID), zap.Int64("pid", msg.ProductID))
-			//5、处理下单逻辑(写入mysql)
+
+			// 5. 处理下单逻辑（写入 MySQL）
 			err := createOrderInDB(msg.UserID, msg.ProductID)
 			if err != nil {
-				//失败处理
-				logger.Log.Error("下单失败", zap.Error(err))
-				//d.Reject(true) //退回队列重试
+				logger.Log.Error("下单失败", zap.Error(err),
+					zap.Int64("uid", msg.UserID), zap.Int64("pid", msg.ProductID))
+
+				// 检查重试次数，超过上限则发送到死信队列
+				if d.Headers != nil {
+					if retries, ok := d.Headers["x-retry-count"]; ok {
+						if count, ok := retries.(int64); ok && count >= maxRetryCount {
+							logger.Log.Error("消息重试次数超限，丢弃",
+								zap.Int64("uid", msg.UserID), zap.Int64("retries", count))
+							_ = d.Ack(false)
+							continue
+						}
+					}
+				}
+
+				// Nack 退回队列重试（requeue=true）
+				if nackErr := d.Nack(false, true); nackErr != nil {
+					logger.Log.Error("Nack 失败", zap.Error(nackErr))
+				}
 			} else {
-				//处理成功 发送ack
+				// 处理成功，发送 ACK
 				if err := d.Ack(false); err != nil {
-					logger.Log.Error("ACK确认失败", zap.Error(err))
+					logger.Log.Error("ACK 确认失败", zap.Error(err))
 				}
 			}
 		}

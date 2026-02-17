@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -17,6 +18,7 @@ type TokenBucket struct {
 	capacity   float64    // 桶容量（最多存储多少令牌）
 	tokens     float64    // 当前令牌数
 	lastUpdate time.Time  // 上次更新时间
+	lastAccess time.Time  // 最后访问时间（用于过期淘汰）
 	mu         sync.Mutex // 互斥锁，保证并发安全
 }
 
@@ -24,11 +26,13 @@ type TokenBucket struct {
 // rate: 每秒生成的令牌数
 // capacity: 桶的最大容量
 func NewTokenBucket(rate, capacity float64) *TokenBucket {
+	now := time.Now()
 	return &TokenBucket{
 		rate:       rate,
 		capacity:   capacity,
 		tokens:     capacity, // 初始时桶是满的
-		lastUpdate: time.Now(),
+		lastUpdate: now,
+		lastAccess: now,
 	}
 }
 
@@ -51,6 +55,7 @@ func (tb *TokenBucket) Allow() bool {
 	}
 
 	tb.lastUpdate = now
+	tb.lastAccess = now
 
 	// 尝试消费一个令牌
 	if tb.tokens >= 1 {
@@ -65,10 +70,38 @@ func (tb *TokenBucket) Allow() bool {
 // 可以为不同的接口设置不同的限流策略
 // 如：秒杀接口限流严格，普通查询接口限流宽松
 
+const limiterExpireDuration = 10 * time.Minute // 限流器过期时间
+
 var (
 	limiters  = make(map[string]*TokenBucket)
 	limiterMu sync.RWMutex
 )
+
+func init() {
+	// 启动后台协程，定期清理过期的限流器，防止内存无限增长
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for range ticker.C {
+			cleanExpiredLimiters()
+		}
+	}()
+}
+
+// cleanExpiredLimiters 清理超过 10 分钟未访问的限流器
+func cleanExpiredLimiters() {
+	now := time.Now()
+	limiterMu.Lock()
+	defer limiterMu.Unlock()
+	for key, tb := range limiters {
+		tb.mu.Lock()
+		expired := now.Sub(tb.lastAccess) > limiterExpireDuration
+		tb.mu.Unlock()
+		if expired {
+			delete(limiters, key)
+		}
+	}
+}
 
 // GetLimiter 获取或创建限流器
 func GetLimiter(key string, rate, capacity float64) *TokenBucket {
@@ -167,7 +200,7 @@ func SeckillRateLimiter() gin.HandlerFunc {
 
 		// 如果用户已登录，增加用户维度限流
 		if uid, exists := c.Get("uid"); exists {
-			userLimiter := GetLimiter("seckill:user:"+string(rune(uid.(int))), 5, 10)
+			userLimiter := GetLimiter(fmt.Sprintf("seckill:user:%d", uid.(int)), 5, 10)
 			if !userLimiter.Allow() {
 				response.FailWithMsg(c, e.ERROR, "操作过于频繁，请稍后再试")
 				c.Abort()
