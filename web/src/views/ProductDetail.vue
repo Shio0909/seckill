@@ -9,32 +9,32 @@
         <!-- 左侧图片 -->
         <el-col :span="14">
           <div class="detail-image">
-            <img :src="product.image_url || defaultImage" :alt="product.name" />
+            <img :src="product.ImageURL || defaultImage" :alt="product.Name" />
           </div>
         </el-col>
 
         <!-- 右侧信息 -->
         <el-col :span="10">
           <div class="detail-info">
-            <h1>{{ product.name }}</h1>
+            <h1>{{ product.Name }}</h1>
 
-            <div class="info-row" v-if="product.artist">
+            <div class="info-row" v-if="product.Artist">
               <span class="info-label">艺人</span>
-              <span>{{ product.artist }}</span>
+              <span>{{ product.Artist }}</span>
             </div>
-            <div class="info-row" v-if="product.venue">
+            <div class="info-row" v-if="product.Venue">
               <span class="info-label">场馆</span>
-              <span>{{ product.venue }}<template v-if="product.city"> · {{ product.city }}</template></span>
+              <span>{{ product.Venue }}<template v-if="product.City"> · {{ product.City }}</template></span>
             </div>
-            <div class="info-row" v-if="product.event_time">
+            <div class="info-row" v-if="product.EventTime">
               <span class="info-label">时间</span>
-              <span>{{ formatDateTime(product.event_time) }}</span>
+              <span>{{ formatDateTime(product.EventTime) }}</span>
             </div>
 
             <div class="price-section">
-              <span class="price">¥{{ product.price }}</span>
-              <span class="price-high" v-if="product.high_price">
-                - ¥{{ product.high_price }}
+              <span class="price">¥{{ product.Price }}</span>
+              <span class="price-high" v-if="product.HighPrice">
+                - ¥{{ product.HighPrice }}
               </span>
             </div>
 
@@ -67,9 +67,9 @@
       </el-row>
 
       <!-- 活动详情 -->
-      <el-card class="desc-card" v-if="product.description">
+      <el-card class="desc-card" v-if="product.Description">
         <template #header><h3>活动详情</h3></template>
-        <p>{{ product.description }}</p>
+        <p>{{ product.Description }}</p>
       </el-card>
     </template>
   </div>
@@ -122,7 +122,7 @@ const loadProduct = async () => {
       getStock(route.params.id),
     ])
     product.value = prodRes.data
-    stock.value = stockRes.data?.stock ?? prodRes.data?.stock ?? 0
+    stock.value = stockRes.data?.stock ?? prodRes.data?.Stock ?? 0
   } catch (e) {
     ElMessage.error('加载活动信息失败')
   } finally {

@@ -49,7 +49,22 @@ func SeckillV2(userID int, productID int) (bool, string) {
 		// RabbitMQ 发送逻辑
 		err := rabbitmq.SendSeckillMessage(int64(userID), int64(productID))
 		if err != nil {
-			return false, "订单创建失败，请稍后再试"
+			// MQ 发送失败：必须回滚 Redis，否则用户扣了库存但永远不会有订单
+			logger.Log.Error("MQ 发送失败，开始 Redis 反向补偿",
+				zap.Int("uid", userID), zap.Int("pid", productID), zap.Error(err))
+
+			// 1. 归还库存 +1（INCR 是原子操作）
+			if rollbackErr := redis.Client.Incr(ctx, stockKey).Err(); rollbackErr != nil {
+				logger.Log.Error("回滚库存失败，需人工介入",
+					zap.Int("uid", userID), zap.Int("pid", productID), zap.Error(rollbackErr))
+			}
+			// 2. 从已购集合移除该用户（SREM 是原子操作）
+			if rollbackErr := redis.Client.SRem(ctx, boughtKey, userID).Err(); rollbackErr != nil {
+				logger.Log.Error("回滚已购记录失败，需人工介入",
+					zap.Int("uid", userID), zap.Int("pid", productID), zap.Error(rollbackErr))
+			}
+
+			return false, "网络繁忙，请稍后重试"
 		}
 
 		return true, "抢购成功！正在生成订单..."

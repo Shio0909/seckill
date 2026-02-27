@@ -8,7 +8,7 @@
 server:
   name: seckill-service
   port: 8080
-  mode: debug                  # debug/release/test
+  mode: release                # debug/release/test
   read_timeout: 10s
   write_timeout: 10s
 
@@ -20,9 +20,9 @@ mysql:
   database: seckill
   charset: utf8mb4
   max_idle_conns: 10
-  max_open_conns: 100
+  max_open_conns: 500
   conn_max_lifetime: 1h
-  log_level: info
+  log_level: warn
 
 redis:
   addr: 127.0.0.1:6379
@@ -50,7 +50,7 @@ jwt:
   expire_time: 72h
 
 log:
-  level: info
+  level: warn
   format: json
   output_path: stdout
   max_size: 100

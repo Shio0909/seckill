@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -42,6 +43,42 @@ type ProductListResponse struct {
 	List  []model.Product `json:"list"`
 }
 
+const (
+	productListCacheTTL   = 30 * time.Second
+	productDetailCacheTTL = 30 * time.Second
+)
+
+func buildProductListCacheKey(req *ProductListRequest) string {
+	status := "nil"
+	if req.Status != nil {
+		status = fmt.Sprintf("%d", *req.Status)
+	}
+	return fmt.Sprintf("seckill:product:list:p:%d:s:%d:k:%s:st:%s", req.Page, req.PageSize, req.Keyword, status)
+}
+
+func buildProductDetailCacheKey(id uint) string {
+	return fmt.Sprintf("seckill:product:detail:%d", id)
+}
+
+func invalidateProductCaches(ctx context.Context, id uint) {
+	redis.Client.Del(ctx, buildProductDetailCacheKey(id))
+
+	var cursor uint64
+	for {
+		keys, nextCursor, err := redis.Client.Scan(ctx, cursor, "seckill:product:list:*", 100).Result()
+		if err != nil {
+			break
+		}
+		if len(keys) > 0 {
+			redis.Client.Del(ctx, keys...)
+		}
+		if nextCursor == 0 {
+			break
+		}
+		cursor = nextCursor
+	}
+}
+
 // List 获取商品列表（分页）
 func (s *ProductService) List(req *ProductListRequest) (*ProductListResponse, error) {
 	// 设置默认值
@@ -50,6 +87,16 @@ func (s *ProductService) List(req *ProductListRequest) (*ProductListResponse, er
 	}
 	if req.PageSize <= 0 {
 		req.PageSize = 10
+	}
+
+	ctx := context.Background()
+	cacheKey := buildProductListCacheKey(req)
+
+	if cached, err := redis.Client.Get(ctx, cacheKey).Result(); err == nil {
+		var cachedResp ProductListResponse
+		if unmarshalErr := json.Unmarshal([]byte(cached), &cachedResp); unmarshalErr == nil {
+			return &cachedResp, nil
+		}
 	}
 
 	var products []model.Product
@@ -72,14 +119,30 @@ func (s *ProductService) List(req *ProductListRequest) (*ProductListResponse, er
 		return nil, err
 	}
 
-	return &ProductListResponse{
+	resp := &ProductListResponse{
 		Total: total,
 		List:  products,
-	}, nil
+	}
+
+	if payload, marshalErr := json.Marshal(resp); marshalErr == nil {
+		redis.Client.Set(ctx, cacheKey, payload, productListCacheTTL)
+	}
+
+	return resp, nil
 }
 
 // GetByID 根据ID获取商品详情
 func (s *ProductService) GetByID(id uint) (*model.Product, error) {
+	ctx := context.Background()
+	cacheKey := buildProductDetailCacheKey(id)
+
+	if cached, err := redis.Client.Get(ctx, cacheKey).Result(); err == nil {
+		var cachedProduct model.Product
+		if unmarshalErr := json.Unmarshal([]byte(cached), &cachedProduct); unmarshalErr == nil {
+			return &cachedProduct, nil
+		}
+	}
+
 	var product model.Product
 	err := database.DB.First(&product, id).Error
 	if err != nil {
@@ -88,6 +151,11 @@ func (s *ProductService) GetByID(id uint) (*model.Product, error) {
 		}
 		return nil, err
 	}
+
+	if payload, marshalErr := json.Marshal(product); marshalErr == nil {
+		redis.Client.Set(ctx, cacheKey, payload, productDetailCacheTTL)
+	}
+
 	return &product, nil
 }
 
@@ -173,6 +241,8 @@ func (s *ProductService) Create(req *CreateProductRequest) (*model.Product, erro
 		return nil, err
 	}
 
+	invalidateProductCaches(context.Background(), product.ID)
+
 	return product, nil
 }
 
@@ -232,6 +302,7 @@ func (s *ProductService) Update(id uint, req *UpdateProductRequest) error {
 
 	ctx := context.Background()
 	redis.Client.Del(ctx, fmt.Sprintf("seckill:stock:%d", id))
+	invalidateProductCaches(ctx, id)
 
 	return nil
 }
@@ -249,6 +320,7 @@ func (s *ProductService) Delete(id uint) error {
 	// 删除缓存
 	ctx := context.Background()
 	redis.Client.Del(ctx, fmt.Sprintf("seckill:stock:%d", id))
+	invalidateProductCaches(ctx, id)
 
 	return nil
 }
@@ -275,6 +347,7 @@ func (s *ProductService) SetStock(id uint, stock int) error {
 	if err != nil {
 		return fmt.Errorf("同步 Redis 失败: %w", err)
 	}
+	invalidateProductCaches(ctx, id)
 
 	return nil
 }

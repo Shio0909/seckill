@@ -36,9 +36,9 @@
     <div v-loading="loading" class="product-grid">
       <ProductCard
         v-for="item in products"
-        :key="item.id"
+        :key="item.ID"
         :product="item"
-        @click="goDetail(item.id)"
+        @click="goDetail(item.ID)"
       />
       <el-empty v-if="!loading && products.length === 0" description="暂无活动" />
     </div>

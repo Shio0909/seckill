@@ -20,6 +20,7 @@ import (
 	"seckill/pkg/redis"
 	"seckill/pkg/snowflake"
 
+	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 )
 
@@ -60,6 +61,7 @@ func main() {
 
 	// 4、启动web服务（支持优雅停机）
 	cfg := config.Get()
+	gin.SetMode(cfg.Server.Mode)
 	r := router.NewRouter()
 
 	srv := &http.Server{

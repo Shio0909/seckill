@@ -26,13 +26,13 @@ const (
 type UserEvent struct {
 	UserID    int64             `json:"user_id"`
 	EventType EventType         `json:"event_type"`
-	ItemID    int64             `json:"item_id"`    // 活动/商品ID
-	ItemType  string            `json:"item_type"`  // product, category, search
+	ItemID    int64             `json:"item_id"`   // 活动/商品ID
+	ItemType  string            `json:"item_type"` // product, category, search
 	Timestamp int64             `json:"timestamp"`
 	SessionID string            `json:"session_id,omitempty"`
-	Source    string            `json:"source,omitempty"`    // 来源：home, search, recommend
-	Position  int               `json:"position,omitempty"`  // 曝光位置
-	Extra     map[string]string `json:"extra,omitempty"`     // 扩展字段
+	Source    string            `json:"source,omitempty"`   // 来源：home, search, recommend
+	Position  int               `json:"position,omitempty"` // 曝光位置
+	Extra     map[string]string `json:"extra,omitempty"`    // 扩展字段
 }
 
 // TrackerConfig 埋点配置

@@ -1,27 +1,27 @@
 <template>
   <el-card class="product-card" shadow="hover" :body-style="{ padding: '0' }">
     <div class="card-image">
-      <img :src="product.image_url || defaultImage" :alt="product.name" />
+      <img :src="product.ImageURL || defaultImage" :alt="product.Name" />
       <el-tag
         class="card-tag"
-        :type="product.stock > 0 ? 'danger' : 'info'"
+        :type="product.Stock > 0 ? 'danger' : 'info'"
         effect="dark"
         size="small"
       >
-        {{ product.stock > 0 ? '即将开抢' : '已售罄' }}
+        {{ product.Stock > 0 ? '即将开抢' : '已售罄' }}
       </el-tag>
     </div>
     <div class="card-body">
-      <h3 class="card-title">{{ product.name }}</h3>
-      <p class="card-venue" v-if="product.venue || product.city">
-        📍 {{ product.venue || product.city }}
+      <h3 class="card-title">{{ product.Name }}</h3>
+      <p class="card-venue" v-if="product.Venue || product.City">
+        📍 {{ product.Venue || product.City }}
       </p>
-      <p class="card-time" v-if="product.event_time">
-        🕐 {{ formatDate(product.event_time) }}
+      <p class="card-time" v-if="product.EventTime">
+        🕐 {{ formatDate(product.EventTime) }}
       </p>
       <div class="card-footer">
-        <span class="card-price">¥{{ product.price }}</span>
-        <span class="card-stock">余票 {{ product.stock }}</span>
+        <span class="card-price">¥{{ product.Price }}</span>
+        <span class="card-stock">余票 {{ product.Stock }}</span>
       </div>
     </div>
   </el-card>

@@ -28,10 +28,9 @@
 Thumbs.db
 
 # Config (use config.example.yaml as template)
-# config/config.yaml
+config/config.yaml
 
 # AI documentation (kept in dev branch only)
-ai_docs/
 
 # Python virtual environments
 .venv/
@@ -63,3 +62,5 @@ web/dist/
 # Temp files
 *.tmp
 *.bak
+
+ai_docs

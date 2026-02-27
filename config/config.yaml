@@ -11,7 +11,7 @@
 server:
   name: seckill-gateway        # 服务名称（用于服务注册）
   port: 8080                   # HTTP 监听端口
-  mode: debug                  # 运行模式: debug(开发) / release(生产) / test(测试)
+  mode: release                # 运行模式: debug(开发) / release(生产) / test(测试)
   read_timeout: 10s            # 读取请求超时时间
   write_timeout: 10s           # 写入响应超时时间
 
@@ -53,9 +53,9 @@ mysql:
   database: seckill            # 数据库名
   charset: utf8mb4             # 字符集
   max_idle_conns: 10           # 最大空闲连接数
-  max_open_conns: 100          # 最大打开连接数
+  max_open_conns: 500          # 最大打开连接数
   conn_max_lifetime: 6h        # 连接最大存活时间
-  log_level: info              # SQL日志级别: silent/error/warn/info
+  log_level: warn              # SQL日志级别: silent/error/warn/info
 
 # -----------------------------------------------------------------------------
 # Redis 配置
@@ -74,7 +74,7 @@ redis:
 # RabbitMQ 配置
 # -----------------------------------------------------------------------------
 rabbitmq:
-  url: amqp://guest:guest@localhost:5673/  # AMQP 连接地址
+  url: amqp://guest:guest@localhost:6672/  # AMQP 连接地址
   queue_name: seckill_queue                # 秒杀队列名称
 
 # -----------------------------------------------------------------------------
@@ -98,7 +98,7 @@ jwt:
 # 日志配置
 # -----------------------------------------------------------------------------
 log:
-  level: info                  # 日志级别: debug/info/warn/error
+  level: warn                  # 日志级别: debug/info/warn/error
   format: json                 # 输出格式: json/console
   output_path: stdout          # 输出路径: stdout 或文件路径如 ./logs/app.log
   max_size: 100                # 单文件最大大小(MB)，用于日志轮转

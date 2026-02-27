@@ -190,8 +190,8 @@ func SeckillRateLimiter() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		clientIP := c.ClientIP()
 
-		// IP 限流：每个 IP 每秒最多 10 次请求
-		ipLimiter := GetLimiter("seckill:ip:"+clientIP, 10, 20)
+		// 压测模式：放宽秒杀 IP 限流
+		ipLimiter := GetLimiter("seckill:ip:"+clientIP, 100000, 200000)
 		if !ipLimiter.Allow() {
 			response.FailWithMsg(c, e.ERROR, "请求过于频繁，请稍后再试")
 			c.Abort()
@@ -200,7 +200,7 @@ func SeckillRateLimiter() gin.HandlerFunc {
 
 		// 如果用户已登录，增加用户维度限流
 		if uid, exists := c.Get("uid"); exists {
-			userLimiter := GetLimiter(fmt.Sprintf("seckill:user:%d", uid.(int)), 5, 10)
+			userLimiter := GetLimiter(fmt.Sprintf("seckill:user:%d", uid.(int)), 50000, 100000)
 			if !userLimiter.Allow() {
 				response.FailWithMsg(c, e.ERROR, "操作过于频繁，请稍后再试")
 				c.Abort()

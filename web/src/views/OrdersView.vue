@@ -5,38 +5,38 @@
     <el-empty v-if="!loading && orders.length === 0" description="暂无订单" />
 
     <div v-loading="loading" class="order-list">
-      <el-card v-for="order in orders" :key="order.id" class="order-card" shadow="hover">
+      <el-card v-for="order in orders" :key="order.ID" class="order-card" shadow="hover">
         <div class="order-header">
-          <span class="order-no">订单号：{{ order.order_no }}</span>
-          <el-tag :type="statusType(order.status)" size="small">{{ statusText(order.status) }}</el-tag>
+          <span class="order-no">订单号：{{ order.OrderNum }}</span>
+          <el-tag :type="statusType(order.Status)" size="small">{{ statusText(order.Status) }}</el-tag>
         </div>
 
         <div class="order-body">
           <div class="order-info">
-            <p class="product-name">{{ order.product_name || `商品 #${order.product_id}` }}</p>
-            <p class="order-time">下单时间：{{ formatTime(order.created_at) }}</p>
+            <p class="product-name">{{ order.Product?.Name || `商品 #${order.ProductID}` }}</p>
+            <p class="order-time">下单时间：{{ formatTime(order.CreatedAt) }}</p>
           </div>
           <div class="order-price">
             <span class="price-label">¥</span>
-            <span class="price-value">{{ (order.amount / 100).toFixed(2) }}</span>
+            <span class="price-value">{{ order.Product?.Price?.toFixed(2) || '-' }}</span>
           </div>
         </div>
 
         <div class="order-footer">
           <el-button
-            v-if="order.status === 0"
+            v-if="order.Status === 0"
             type="primary"
             size="small"
             @click="handlePay(order)"
-            :loading="payingId === order.id"
+            :loading="payingId === order.ID"
           >
             去支付
           </el-button>
           <el-button
-            v-if="order.status === 0"
+            v-if="order.Status === 0"
             size="small"
             @click="handleCancel(order)"
-            :loading="cancellingId === order.id"
+            :loading="cancellingId === order.ID"
           >
             取消订单
           </el-button>
@@ -85,9 +85,9 @@ const fetchOrders = async () => {
 const handlePay = async (order) => {
   payingId.value = order.id
   try {
-    await payOrder(order.order_no)
+    await payOrder(order.OrderNum)
     ElMessage.success('支付成功')
-    order.status = 1
+    order.Status = 1
   } catch (e) {
     // handled
   } finally {
@@ -108,9 +108,9 @@ const handleCancel = async (order) => {
 
   cancellingId.value = order.id
   try {
-    await cancelOrder(order.order_no)
+    await cancelOrder(order.OrderNum)
     ElMessage.success('订单已取消')
-    order.status = 2
+    order.Status = 2
   } catch (e) {
     // handled
   } finally {
