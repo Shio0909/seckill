@@ -36,11 +36,11 @@ func NewRouter() *gin.Engine {
 	r := gin.New()
 
 	// 2. 加载全局中间件（注意顺序！）
-	r.Use(middleware.TraceLogger())           // 先生成 trace_id
-	r.Use(middleware.Recovery())              // 捕获 panic
+	r.Use(middleware.TraceLogger())                 // 先生成 trace_id
+	r.Use(middleware.Recovery())                    // 捕获 panic
 	r.Use(middleware.IPRateLimiter(100000, 200000)) // 压测模式：放宽全局 IP 限流
-	r.Use(middleware.ZapLogger())             // 记录日志
-	r.Use(middleware.Cors())                  // 解决跨域
+	r.Use(middleware.ZapLogger())                   // 记录日志
+	r.Use(middleware.Cors())                        // 解决跨域
 
 	// 3. 注册 Swagger 文档路由
 	// 访问地址: http://localhost:8080/swagger/index.html
